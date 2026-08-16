@@ -161,5 +161,37 @@ class TestFetchAnnouncements(unittest.TestCase):
         )
         mock_parse.assert_called_once_with(html)
         
+    @patch("psx_data.announcements.parse_announcements")
+    @patch("psx_data.announcements.fetch_announcements")
+    def test_get_announcements_supports_pagination(
+        self,
+        mock_fetch,
+        mock_parse,
+    ):
+        html = "<html>PSX announcements</html>"
+        expected = []
+
+        mock_fetch.return_value = html
+        mock_parse.return_value = expected
+
+        from psx_data import get_announcements
+
+        result = get_announcements(
+            symbol="HUBC",
+            count=15,
+            offset=15,
+        )
+
+        self.assertEqual(result, expected)
+
+        mock_fetch.assert_called_once_with(
+            symbol="HUBC",
+            count=15,
+            offset=15,
+            date_from="",
+            date_to="",
+        )
+        mock_parse.assert_called_once_with(html)
+
 if __name__ == "__main__":
     unittest.main()
