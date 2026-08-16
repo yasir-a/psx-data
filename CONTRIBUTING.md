@@ -205,6 +205,45 @@ Feature requests are welcome.
 
 For larger features, open an issue before implementing the feature so that the proposed approach can be discussed before significant development work begins.
 
+## Release Process
+
+psx-data follows Semantic Versioning:
+
+`MAJOR.MINOR.PATCH`
+
+- **MAJOR** — breaking or incompatible changes
+- **MINOR** — new backward-compatible functionality
+- **PATCH** — backward-compatible bug fixes
+
+While the project is below `1.0.0`, development releases will follow the `0.x` versioning scheme.
+
+Examples:
+
+- `0.1.0` → initial development release
+- `0.1.1` → bug fix
+- `0.2.0` → new backward-compatible feature
+- `1.0.0` → first stable release or a breaking change requiring a major version
+
+### Release Checklist
+
+Before creating a release:
+
+1. Make sure all intended changes have been merged into `main`.
+2. Run the complete test suite.
+3. Update `CHANGELOG.md`.
+4. Update the project version in `pyproject.toml`.
+5. Create a pull request for the release changes.
+6. Merge the pull request after review and successful checks.
+7. Create a Git tag using the format `vX.Y.Z`.
+8. Create the corresponding GitHub Release.
+9. Include the relevant `CHANGELOG.md` entries in the release notes.
+
+Example:
+
+```text
+v0.2.0
+```
+
 ## License
 
 By contributing to psx-data, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).
