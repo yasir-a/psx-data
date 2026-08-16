@@ -193,5 +193,37 @@ class TestFetchAnnouncements(unittest.TestCase):
         )
         mock_parse.assert_called_once_with(html)
 
+    @patch("psx_data.announcements.parse_announcements")
+    @patch("psx_data.announcements.fetch_announcements")
+    def test_get_announcements_supports_date_filters(
+        self,
+        mock_fetch,
+        mock_parse,
+    ):
+        html = "<html>PSX announcements</html>"
+        expected = []
+
+        mock_fetch.return_value = html
+        mock_parse.return_value = expected
+
+        from psx_data import get_announcements
+
+        result = get_announcements(
+            symbol="HUBC",
+            date_from="2026-01-01",
+            date_to="2026-08-10",
+        )
+
+        self.assertEqual(result, expected)
+
+        mock_fetch.assert_called_once_with(
+            symbol="HUBC",
+            count=50,
+            offset=0,
+            date_from="2026-01-01",
+            date_to="2026-08-10",
+        )
+        mock_parse.assert_called_once_with(html)  
+
 if __name__ == "__main__":
     unittest.main()
