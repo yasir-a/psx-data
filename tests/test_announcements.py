@@ -116,5 +116,50 @@ class TestFetchAnnouncements(unittest.TestCase):
             second.pdf,
             "/download/document/277488.pdf",
         )
+
+    @patch("psx_data.announcements.parse_announcements")
+    @patch("psx_data.announcements.fetch_announcements")
+    def test_get_announcements_fetches_and_parses(
+        self,
+        mock_fetch,
+        mock_parse,
+    ):
+        html = "<html>PSX announcements</html>"
+        expected = [
+            Announcement(
+                date="Aug 11, 2026",
+                time="3:22 PM",
+                symbol="HUBC",
+                name="The Hub Power Company Limited",
+                title="Disclosure of Interest",
+                image="281033-1.gif",
+                pdf=None,
+            )
+        ]
+
+        mock_fetch.return_value = html
+        mock_parse.return_value = expected
+
+        from psx_data.announcements import get_announcements
+
+        result = get_announcements(
+            symbol="HUBC",
+            count=50,
+            offset=0,
+            date_from="2026-01-01",
+            date_to="2026-08-10",
+        )
+
+        self.assertEqual(result, expected)
+
+        mock_fetch.assert_called_once_with(
+            symbol="HUBC",
+            count=50,
+            offset=0,
+            date_from="2026-01-01",
+            date_to="2026-08-10",
+        )
+        mock_parse.assert_called_once_with(html)
+        
 if __name__ == "__main__":
     unittest.main()

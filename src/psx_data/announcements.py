@@ -83,6 +83,22 @@ def parse_announcements(html: str) -> list[Announcement]:
     parser.feed(html)
     return parser.announcements
 
+def get_announcements(
+    symbol: str = "",
+    count: int = 50,
+    offset: int = 0,
+    date_from: str = "",
+    date_to: str = "",
+) -> list[Announcement]:
+    html = fetch_announcements(
+        symbol=symbol,
+        count=count,
+        offset=offset,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    return parse_announcements(html)
 
 def fetch_announcements(
     symbol: str = "",
