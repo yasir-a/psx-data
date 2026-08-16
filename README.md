@@ -92,4 +92,7 @@ The project follows a Code of Conduct to help maintain a respectful and welcomin
 
 See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
+The project also maintains a security policy for reporting vulnerabilities.
+
+See [SECURITY.md](SECURITY.md).
 
