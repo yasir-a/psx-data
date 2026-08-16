@@ -1,8 +1,87 @@
+from dataclasses import dataclass
+from html.parser import HTMLParser
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
 PSX_ANNOUNCEMENTS_URL = "https://dps.psx.com.pk/announcements"
+
+
+@dataclass
+class Announcement:
+    date: str
+    time: str
+    symbol: str
+    name: str
+    title: str
+    image: str | None
+    pdf: str | None
+
+
+class _AnnouncementParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.announcements = []
+
+        self._in_row = False
+        self._row = []
+        self._cell_text = []
+
+        self._image = None
+        self._pdf = None
+        self._in_cell = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+
+        if tag == "tr":
+            self._in_row = True
+            self._row = []
+            self._image = None
+            self._pdf = None
+
+        elif tag == "td" and self._in_row:
+            self._in_cell = True
+            self._cell_text = []
+
+        elif tag == "a" and self._in_row:
+            if "data-images" in attrs:
+                self._image = attrs["data-images"]
+
+            href = attrs.get("href", "")
+            if href.endswith(".pdf"):
+                self._pdf = href
+
+    def handle_endtag(self, tag):
+        if tag == "td" and self._in_row:
+            self._in_cell = False
+            self._row.append("".join(self._cell_text).strip())
+
+        elif tag == "tr" and self._in_row:
+            self._in_row = False
+
+            if len(self._row) >= 5:
+                self.announcements.append(
+                    Announcement(
+                        date=self._row[0],
+                        time=self._row[1],
+                        symbol=self._row[2],
+                        name=self._row[3],
+                        title=self._row[4],
+                        image=self._image,
+                        pdf=self._pdf,
+                    )
+                )
+
+    def handle_data(self, data):
+        if self._in_cell:
+            self._cell_text.append(data)
+
+
+def parse_announcements(html: str) -> list[Announcement]:
+    parser = _AnnouncementParser()
+    parser.feed(html)
+    return parser.announcements
 
 
 def fetch_announcements(
