@@ -70,4 +70,26 @@ Docker is not currently required for development.
 ```bash
 git clone https://github.com/yasir-a/psx-data.git
 cd psx-data
-## Development
+```
+## Contributing
+
+Contributions are welcome.
+
+All changes should follow the project's contribution guidelines.
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
+
+- Branching strategy
+- Branch naming conventions
+- Development workflow
+- Testing requirements
+- Commit conventions
+- Pull request requirements
+- Code review
+- Dependency guidelines
+
+The project follows a Code of Conduct to help maintain a respectful and welcoming community.
+
+See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+
