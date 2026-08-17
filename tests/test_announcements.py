@@ -223,7 +223,84 @@ class TestFetchAnnouncements(unittest.TestCase):
             date_from="2026-01-01",
             date_to="2026-08-10",
         )
-        mock_parse.assert_called_once_with(html)  
+        mock_parse.assert_called_once_with(html)
+
+    @patch("psx_data.announcements.get_announcements")
+    def test_iter_announcements_yields_all_pages(self, mock_get):
+        first_page = [
+            Announcement(
+                date="Aug 11, 2026",
+                time="3:22 PM",
+                symbol="HUBC",
+                name="The Hub Power Company Limited",
+                title="First announcement",
+                image="281033-1.gif",
+                pdf=None,
+            ),
+            Announcement(
+                date="May 19, 2026",
+                time="3:05 PM",
+                symbol="HUBC",
+                name="The Hub Power Company Limited",
+                title="Second announcement",
+                image="277488-1.gif",
+                pdf="/download/document/277488.pdf",
+            ),
+        ]
+
+        second_page = [
+            Announcement(
+                date="Apr 29, 2026",
+                time="2:10 PM",
+                symbol="HUBC",
+                name="The Hub Power Company Limited",
+                title="Third announcement",
+                image="275794-1.gif",
+                pdf="/download/document/275794.pdf",
+            )
+        ]
+
+        mock_get.side_effect = [first_page, second_page, []]
+
+        from psx_data import iter_announcements
+
+        result = list(
+            iter_announcements(
+                symbol="HUBC",
+                count=2,
+            )
+        )
+
+        self.assertEqual(
+            result,
+            first_page + second_page,
+        )
+
+        self.assertEqual(mock_get.call_count, 3)
+
+        mock_get.assert_any_call(
+            symbol="HUBC",
+            count=2,
+            offset=0,
+            date_from="",
+            date_to="",
+        )
+
+        mock_get.assert_any_call(
+            symbol="HUBC",
+            count=2,
+            offset=2,
+            date_from="",
+            date_to="",
+        )
+
+        mock_get.assert_any_call(
+            symbol="HUBC",
+            count=2,
+            offset=4,
+            date_from="",
+            date_to="",
+        )  
 
 if __name__ == "__main__":
     unittest.main()
