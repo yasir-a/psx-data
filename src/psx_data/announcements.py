@@ -100,6 +100,29 @@ def get_announcements(
 
     return parse_announcements(html)
 
+def iter_announcements(
+    symbol: str = "",
+    count: int = 50,
+    date_from: str = "",
+    date_to: str = "",
+):
+    offset = 0
+
+    while True:
+        announcements = get_announcements(
+            symbol=symbol,
+            count=count,
+            offset=offset,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+        if not announcements:
+            break
+
+        yield from announcements
+        offset += count
+
 def fetch_announcements(
     symbol: str = "",
     count: int = 50,
