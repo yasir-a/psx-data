@@ -9,6 +9,8 @@ from pathlib import Path
 
 from psx_data import (
     get_announcements,
+    get_eod,
+    get_intraday,
     get_sectors,
     get_symbols,
 )
@@ -106,6 +108,68 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser(
         "sectors",
         help="List all active market sectors on PSX",
+    )
+
+    # Subcommand: eod
+    eod_parser = subparsers.add_parser(
+        "eod",
+        help="Fetch historical End-of-Day (EOD) OHLCV candles",
+    )
+    eod_parser.add_argument(
+        "--symbol",
+        "-s",
+        type=str,
+        required=True,
+        help="Stock ticker symbol or index (e.g. HUBC, SYS, KSE100)",
+    )
+    eod_parser.add_argument(
+        "--limit",
+        "-l",
+        type=int,
+        default=20,
+        help="Number of recent daily candles to display (default: 20)",
+    )
+    eod_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output in JSON format",
+    )
+    eod_parser.add_argument(
+        "--csv",
+        type=str,
+        default="",
+        help="Save candles to a CSV file path",
+    )
+
+    # Subcommand: intraday
+    int_parser = subparsers.add_parser(
+        "intraday",
+        help="Fetch real-time intraday price ticks",
+    )
+    int_parser.add_argument(
+        "--symbol",
+        "-s",
+        type=str,
+        required=True,
+        help="Stock ticker symbol or index (e.g. HUBC, SYS, KSE100)",
+    )
+    int_parser.add_argument(
+        "--limit",
+        "-l",
+        type=int,
+        default=20,
+        help="Number of recent intraday ticks to display (default: 20)",
+    )
+    int_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output in JSON format",
+    )
+    int_parser.add_argument(
+        "--csv",
+        type=str,
+        default="",
+        help="Save ticks to a CSV file path",
     )
 
     return parser
@@ -215,6 +279,81 @@ def handle_sectors() -> int:
     return 0
 
 
+def handle_eod(args: argparse.Namespace) -> int:
+    try:
+        candles = get_eod(symbol=args.symbol, limit=args.limit)
+    except PSXError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if not candles:
+        print(f"No EOD data found for symbol '{args.symbol}'.")
+        return 0
+
+    if args.csv:
+        csv_path = Path(args.csv)
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with csv_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f, fieldnames=["date", "timestamp", "open", "high", "low", "close", "volume"]
+            )
+            writer.writeheader()
+            for c in candles:
+                writer.writerow({**asdict(c), "date": c.date_str})
+        print(f"Saved {len(candles)} candles to {csv_path}")
+        return 0
+
+    if args.json:
+        data = [{**asdict(c), "date": c.date_str} for c in candles]
+        print(json.dumps(data, indent=2))
+        return 0
+
+    print(f"--- EOD Historical Quotes: {args.symbol.upper()} ---")
+    print(f"{'Date':<12} {'Open':>10} {'High':>10} {'Low':>10} {'Close':>10} {'Volume':>14}")
+    for c in candles:
+        print(
+            f"{c.date_str:<12} {c.open:>10.2f} {c.high:>10.2f} {c.low:>10.2f} "
+            f"{c.close:>10.2f} {c.volume:>14,d}"
+        )
+
+    return 0
+
+
+def handle_intraday(args: argparse.Namespace) -> int:
+    try:
+        ticks = get_intraday(symbol=args.symbol, limit=args.limit)
+    except PSXError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if not ticks:
+        print(f"No Intraday data found for symbol '{args.symbol}'.")
+        return 0
+
+    if args.csv:
+        csv_path = Path(args.csv)
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with csv_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["time", "timestamp", "price", "volume"])
+            writer.writeheader()
+            for t in ticks:
+                writer.writerow({**asdict(t), "time": t.time_str})
+        print(f"Saved {len(ticks)} ticks to {csv_path}")
+        return 0
+
+    if args.json:
+        data = [{**asdict(t), "time": t.time_str} for t in ticks]
+        print(json.dumps(data, indent=2))
+        return 0
+
+    print(f"--- Intraday Price Ticks: {args.symbol.upper()} ---")
+    print(f"{'Time':<10} {'Price':>10} {'Volume':>14}")
+    for t in ticks:
+        print(f"{t.time_str:<10} {t.price:>10.2f} {t.volume:>14,d}")
+
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -225,6 +364,10 @@ def main(argv: list[str] | None = None) -> int:
         return handle_symbols(args)
     elif args.command == "sectors":
         return handle_sectors()
+    elif args.command == "eod":
+        return handle_eod(args)
+    elif args.command == "intraday":
+        return handle_intraday(args)
 
     return 0
 

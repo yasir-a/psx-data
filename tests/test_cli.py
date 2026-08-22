@@ -136,5 +136,33 @@ class TestCLI(unittest.TestCase):
         self.assertIn("- CEMENT", fake_out.getvalue())
         self.assertIn("- COMMERCIAL BANKS", fake_out.getvalue())
 
+    @patch("psx_data.cli.get_eod")
+    def test_cli_eod_output(self, mock_get_eod):
+        from psx_data.market import OHLCV
+        mock_get_eod.return_value = [
+            OHLCV(timestamp=1723334400, open=145.5, high=148.0, low=144.2, close=147.1, volume=5000)
+        ]
+
+        with patch("sys.stdout", new=io.StringIO()) as fake_out:
+            exit_code = main(["eod", "--symbol", "HUBC", "--limit", "1"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("EOD Historical Quotes: HUBC", fake_out.getvalue())
+        self.assertIn("147.10", fake_out.getvalue())
+
+    @patch("psx_data.cli.get_intraday")
+    def test_cli_intraday_output(self, mock_get_intraday):
+        from psx_data.market import IntradayTick
+        mock_get_intraday.return_value = [
+            IntradayTick(timestamp=1723507200, price=149.8, volume=12000)
+        ]
+
+        with patch("sys.stdout", new=io.StringIO()) as fake_out:
+            exit_code = main(["intraday", "--symbol", "SYS", "--limit", "1"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Intraday Price Ticks: SYS", fake_out.getvalue())
+        self.assertIn("149.80", fake_out.getvalue())
+
 if __name__ == "__main__":
     unittest.main()
