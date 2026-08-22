@@ -66,6 +66,50 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(exit_code, 1)
         self.assertIn("Connection timed out", fake_err.getvalue())
 
+    @patch("psx_data.cli.export_to_csv")
+    @patch("psx_data.cli.get_announcements")
+    def test_cli_announcements_csv_export(self, mock_get, mock_export):
+        mock_get.return_value = [
+            Announcement(
+                date="Aug 11, 2026",
+                time="3:22 PM",
+                symbol="HUBC",
+                name="The Hub Power Company Limited",
+                title="Disclosure of Interest",
+                image=None,
+                pdf=None,
+            )
+        ]
+        mock_export.return_value = "hubc.csv"
+
+        with patch("sys.stdout", new=io.StringIO()) as fake_out:
+            exit_code = main(["announcements", "--symbol", "HUBC", "--csv", "hubc.csv"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Saved 1 announcements to hubc.csv", fake_out.getvalue())
+        mock_export.assert_called_once()
+
+    @patch("psx_data.cli.download_attachment")
+    @patch("psx_data.cli.get_announcements")
+    def test_cli_announcements_download_dir(self, mock_get, mock_download):
+        mock_get.return_value = [
+            Announcement(
+                date="Aug 11, 2026",
+                time="3:22 PM",
+                symbol="HUBC",
+                name="The Hub Power Company Limited",
+                title="Notice",
+                image="281033-1.gif",
+                pdf="/download/document/281033.pdf",
+            )
+        ]
+
+        with patch("sys.stdout", new=io.StringIO()) as fake_out:
+            exit_code = main(["announcements", "--symbol", "HUBC", "--download-dir", "./downloads"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Downloaded 2 attachments", fake_out.getvalue())
+        self.assertEqual(mock_download.call_count, 2)
 
 if __name__ == "__main__":
     unittest.main()
