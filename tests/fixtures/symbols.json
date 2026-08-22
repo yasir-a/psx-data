@@ -1,0 +1,27 @@
+[
+  {
+    "symbol": "HUBC",
+    "name": "The Hub Power Company Limited",
+    "sectorName": "POWER GENERATION & DISTRIBUTION"
+  },
+  {
+    "symbol": "OGDC",
+    "name": "Oil & Gas Development Company Limited",
+    "sectorName": "OIL & GAS EXPLORATION COMPANIES"
+  },
+  {
+    "symbol": "SYS",
+    "name": "Systems Limited",
+    "sectorName": "TECHNOLOGY & COMMUNICATION"
+  },
+  {
+    "symbol": "MEBL",
+    "name": "Meezan Bank Limited",
+    "sectorName": "COMMERCIAL BANKS"
+  },
+  {
+    "symbol": "LUCK",
+    "name": "Lucky Cement Limited",
+    "sectorName": "CEMENT"
+  }
+]

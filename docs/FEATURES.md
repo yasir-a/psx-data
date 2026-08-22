@@ -10,16 +10,20 @@
   - [Fetching Announcements](#fetching-announcements)
   - [Auto-Paginating with Generator](#auto-paginating-with-generator)
   - [Data Model & Attachment URLs](#data-model--attachment-urls)
-- [3. Storage & Export Utilities](#3-storage--export-utilities)
+- [3. Symbols & Companies Directory](#3-symbols--companies-directory)
+  - [Listing All Tickers & Symbols](#listing-all-tickers--symbols)
+  - [Filtering by Sector and Query](#filtering-by-sector-and-query)
+  - [Listing Market Sectors](#listing-market-sectors)
+- [4. Storage & Export Utilities](#4-storage--export-utilities)
   - [Downloading PDF / Image Attachments](#downloading-pdf--image-attachments)
   - [Exporting to CSV](#exporting-to-csv)
   - [Exporting to JSON](#exporting-to-json)
-- [4. Error Handling & Resilience](#4-error-handling--resilience)
-- [5. Command-Line Interface (CLI)](#5-command-line-interface-cli)
-  - [Available CLI Commands & Examples](#available-cli-commands--examples)
-  - [Exporting & Downloading via CLI](#exporting--downloading-via-cli)
-  - [Installing and Testing the Binary Command](#installing-and-testing-the-binary-command)
-- [6. Test Suite & Quality Assurance](#6-test-suite--quality-assurance)
+- [5. Error Handling & Resilience](#5-error-handling--resilience)
+- [6. Command-Line Interface (CLI)](#6-command-line-interface-cli)
+  - [Announcements Commands](#announcements-commands)
+  - [Symbols & Sectors Commands](#symbols--sectors-commands)
+  - [Installing and Testing Binary Command](#installing-and-testing-binary-command)
+- [7. Test Suite & Quality Assurance](#7-test-suite--quality-assurance)
 
 ---
 
@@ -34,17 +38,17 @@ PSX Portal (dps.psx.com.pk)
 Data Collection (HTTP Clients & URL builders)
        │
        ▼
-Parsing (HTML streaming parser)
+Parsing (HTML streaming parser & JSON parsers)
        │
        ▼
-Domain Models (Announcement dataclass)
+Domain Models (Announcement, Symbol)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
 Query Pagination  Storage (download_attachment, export_to_csv, export_to_json)
        │
        ▼
-Public API (get_announcements, iter_announcements, storage utilities)
+Public API (get_announcements, iter_announcements, get_symbols, get_tickers, get_sectors)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
@@ -97,7 +101,47 @@ Each announcement is an `Announcement` dataclass with automatic URL resolution:
 
 ---
 
-## 3. Storage & Export Utilities
+## 3. Symbols & Companies Directory
+
+### Listing All Tickers & Symbols
+Fetch all listed companies on the Pakistan Stock Exchange:
+
+```python
+from psx_data import get_symbols, get_tickers
+
+# Get all ticker strings
+tickers = get_tickers()
+print(tickers[:10])  # ['1847', '786', 'AABS', ...]
+
+# Get structured Symbol objects
+symbols = get_symbols()
+for s in symbols[:5]:
+    print(f"{s.symbol:<8} {s.name} ({s.sector})")
+```
+
+### Filtering by Sector and Query
+```python
+from psx_data import get_symbols
+
+# Filter by market sector
+banks = get_symbols(sector="COMMERCIAL BANKS")
+
+# Search by company name or ticker query
+power_companies = get_symbols(query="Power")
+```
+
+### Listing Market Sectors
+```python
+from psx_data import get_sectors
+
+sectors = get_sectors()
+for sector in sectors:
+    print(f"- {sector}")
+```
+
+---
+
+## 4. Storage & Export Utilities
 
 ### Downloading PDF / Image Attachments
 Download official notice attachments directly to a local directory:
@@ -134,13 +178,13 @@ export_to_json(announcements, "sys_announcements.json")
 
 ---
 
-## 4. Error Handling & Resilience
+## 5. Error Handling & Resilience
 
 `psx-data` includes a built-in exception hierarchy and configurable network timeouts:
 
 ```python
 from psx_data import get_announcements
-from psx_data.exceptions import PSXError, PSXNetworkError
+from psx_data.exceptions import PSXError, PSXNetworkError, PSXParseError
 
 try:
     data = get_announcements(symbol="HUBC", timeout=5.0)
@@ -152,55 +196,74 @@ except PSXError as exc:
 
 ---
 
-## 5. Command-Line Interface (CLI)
+## 6. Command-Line Interface (CLI)
 
-### Available CLI Commands & Examples
-
-```bash
-# 1. View general help menu
-python -m psx_data.cli --help
-
-# 2. View announcements subcommand options
-python -m psx_data.cli announcements --help
-
-# 3. Fetch recent announcements for a company (Text output)
-python -m psx_data.cli announcements --symbol HUBC --count 5
-python -m psx_data.cli announcements --symbol SYS --count 5
-
-# 4. Fetch announcements in JSON format
-python -m psx_data.cli announcements --symbol HUBC --count 2 --json
-
-# 5. Filter announcements by date range
-python -m psx_data.cli announcements --symbol OGDC --date-from 2026-01-01 --count 5
-```
-
-### Exporting & Downloading via CLI
+### Announcements Commands
 
 ```bash
-# Export announcements to CSV
-python -m psx_data.cli announcements --symbol HUBC --count 20 --csv hubc_announcements.csv
+# 1. Fetch recent announcements (Text output)
+psx-data announcements --symbol HUBC --count 5
+psx-data announcements --symbol SYS --count 5
 
-# Download all PDF & image notices directly to a folder
-python -m psx_data.cli announcements --symbol HUBC --count 5 --download-dir ./hubc_files
+# 2. Output in JSON format
+psx-data announcements --symbol HUBC --count 2 --json
+
+# 3. Filter by date range
+psx-data announcements --symbol OGDC --date-from 2026-01-01 --count 5
+
+# 4. Export announcements to CSV
+psx-data announcements --symbol HUBC --count 20 --csv hubc_announcements.csv
+
+# 5. Download all attached PDFs & images directly to a folder
+psx-data announcements --symbol HUBC --count 5 --download-dir ./hubc_files
 ```
 
-### Installing and Testing the Binary Command
-To install the package locally in editable mode and run the `psx-data` binary directly:
+### Symbols & Sectors Commands
+
+```bash
+# 1. List all active market sectors on PSX
+psx-data sectors
+# Or via module:
+python -m psx_data.cli sectors
+
+# 2. Search companies by query (symbol ticker or company name)
+psx-data symbols --query "Power"
+psx-data symbols --query "SYS"
+# Or via module:
+python -m psx_data.cli symbols --query "Power"
+
+# 3. Filter companies by market sector
+psx-data symbols --sector "COMMERCIAL BANKS"
+# Or via module:
+python -m psx_data.cli symbols --sector "COMMERCIAL BANKS"
+
+# 4. Export symbols list to CSV or JSON
+psx-data symbols --csv all_symbols.csv
+psx-data symbols --query "Bank" --json
+# Or via module:
+python -m psx_data.cli symbols --csv all_symbols.csv
+python -m psx_data.cli symbols --query "Bank" --json
+```
+
+### Installing and Testing Binary Command
+To install the package locally in editable mode and run the `psx-data` binary directly from anywhere:
 
 ```bash
 # Install in editable mode
 pip install -e .
 
-# Run the CLI binary directly from anywhere in your environment
+# Run directly from anywhere in your environment
+psx-data --help
+psx-data sectors
+psx-data symbols --query "OGDC"
 psx-data announcements --symbol HUBC --count 5
-psx-data announcements --symbol SYS --count 5
-psx-data announcements --symbol HUBC --csv hubc.csv
 ```
 
 ---
 
-## 6. Test Suite & Quality Assurance
+## 7. Test Suite & Quality Assurance
 
-* **24 unit tests** using standard library `unittest`.
-* Tested against offline PSX HTML fixtures and mock network layers.
+* **34 unit tests** using standard library `unittest`.
+* Tested against offline PSX HTML and JSON fixtures as well as mock network layers.
 * Automated CI pipeline on GitHub Actions.
+

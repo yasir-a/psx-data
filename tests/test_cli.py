@@ -110,6 +110,31 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("Downloaded 2 attachments", fake_out.getvalue())
         self.assertEqual(mock_download.call_count, 2)
+    
+    @patch("psx_data.cli.get_symbols")
+    def test_cli_symbols_output(self, mock_get_symbols):
+        from psx_data.symbols import Symbol
+        mock_get_symbols.return_value = [
+            Symbol(symbol="HUBC", name="The Hub Power Company Limited", sector="POWER")
+        ]
+
+        with patch("sys.stdout", new=io.StringIO()) as fake_out:
+            exit_code = main(["symbols", "--query", "HUBC"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("HUBC", fake_out.getvalue())
+        self.assertIn("The Hub Power Company Limited", fake_out.getvalue())
+
+    @patch("psx_data.cli.get_sectors")
+    def test_cli_sectors_output(self, mock_get_sectors):
+        mock_get_sectors.return_value = ["CEMENT", "COMMERCIAL BANKS"]
+
+        with patch("sys.stdout", new=io.StringIO()) as fake_out:
+            exit_code = main(["sectors"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("- CEMENT", fake_out.getvalue())
+        self.assertIn("- COMMERCIAL BANKS", fake_out.getvalue())
 
 if __name__ == "__main__":
     unittest.main()
