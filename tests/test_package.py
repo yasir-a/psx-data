@@ -9,10 +9,25 @@ class TestPackage(unittest.TestCase):
         self.assertIsNotNone(psx_data)
 
     def test_public_api_import(self):
-        from psx_data import Announcement, get_announcements
+        from psx_data import (
+            Announcement,
+            PSXError,
+            Symbol,
+            download_attachment,
+            get_announcements,
+            get_sectors,
+            get_symbols,
+            get_tickers,
+        )
 
         self.assertIsNotNone(Announcement)
+        self.assertIsNotNone(Symbol)
         self.assertIsNotNone(get_announcements)
+        self.assertIsNotNone(get_symbols)
+        self.assertIsNotNone(get_tickers)
+        self.assertIsNotNone(get_sectors)
+        self.assertIsNotNone(download_attachment)
+        self.assertIsNotNone(PSXError)
 
 
 if __name__ == "__main__":
