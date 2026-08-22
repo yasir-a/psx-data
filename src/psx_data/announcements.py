@@ -1,10 +1,13 @@
 from dataclasses import dataclass
 from html.parser import HTMLParser
+from urllib.error import URLError
+from psx_data.exceptions import PSXNetworkError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
-PSX_ANNOUNCEMENTS_URL = "https://dps.psx.com.pk/announcements"
+PSX_BASE_URL = "https://dps.psx.com.pk"
+PSX_ANNOUNCEMENTS_URL = f"{PSX_BASE_URL}/announcements"
 
 
 @dataclass
@@ -16,6 +19,27 @@ class Announcement:
     title: str
     image: str | None
     pdf: str | None
+
+    @property
+    def pdf_url(self) -> str | None:
+        """Returns the full downloadable URL for the PDF attachment, if available."""
+        if not self.pdf:
+            return None
+        if self.pdf.startswith("http://") or self.pdf.startswith("https://"):
+            return self.pdf
+        return f"{PSX_BASE_URL}{self.pdf}"
+
+    @property
+    def image_urls(self) -> list[str]:
+        """Returns a list of full downloadable URLs for image attachments."""
+        if not self.image:
+            return []
+        images = [img.strip() for img in self.image.split(",") if img.strip()]
+        return [
+            img if img.startswith("http://") or img.startswith("https://")
+            else f"{PSX_BASE_URL}/download/image/{img}"
+            for img in images
+        ]
 
 
 class _AnnouncementParser(HTMLParser):
@@ -89,6 +113,7 @@ def get_announcements(
     offset: int = 0,
     date_from: str = "",
     date_to: str = "",
+    timeout: float = 10.0
 ) -> list[Announcement]:
     html = fetch_announcements(
         symbol=symbol,
@@ -96,6 +121,7 @@ def get_announcements(
         offset=offset,
         date_from=date_from,
         date_to=date_to,
+        timeout=timeout
     )
 
     return parse_announcements(html)
@@ -105,6 +131,7 @@ def iter_announcements(
     count: int = 50,
     date_from: str = "",
     date_to: str = "",
+    timeout: float = 10.0
 ):
     offset = 0
 
@@ -115,6 +142,7 @@ def iter_announcements(
             offset=offset,
             date_from=date_from,
             date_to=date_to,
+            timeout=timeout
         )
 
         if not announcements:
@@ -129,6 +157,7 @@ def fetch_announcements(
     offset: int = 0,
     date_from: str = "",
     date_to: str = "",
+    timeout: float = 10.0
 ) -> str:
     data = urlencode(
         {
@@ -153,5 +182,8 @@ def fetch_announcements(
         method="POST",
     )
 
-    with urlopen(request) as response:
-        return response.read().decode("utf-8")
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            return response.read().decode("utf-8")
+    except URLError as e:
+        raise PSXNetworkError(f"Failed to fetch announcements: {e}") from e

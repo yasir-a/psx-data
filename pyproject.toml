@@ -19,3 +19,6 @@ Issues = "https://github.com/yasir-a/psx-data/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.scripts]
+psx-data = "psx_data.cli:main"

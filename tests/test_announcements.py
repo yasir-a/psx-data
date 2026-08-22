@@ -1,8 +1,11 @@
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import URLError
+    
 
 from psx_data.announcements import Announcement, fetch_announcements
+from psx_data.exceptions import PSXNetworkError
 
 
 class TestFetchAnnouncements(unittest.TestCase):
@@ -54,6 +57,13 @@ class TestFetchAnnouncements(unittest.TestCase):
 
         self.assertIn("symbol=ABC%26XYZ", request.data.decode("utf-8"))
     
+    @patch("psx_data.announcements.urlopen")
+    def test_fetch_announcements_raises_network_error(self, mock_urlopen):
+        mock_urlopen.side_effect = URLError("Connection timed out")
+
+        with self.assertRaises(PSXNetworkError):
+            fetch_announcements(symbol="HUBC")
+    
     def test_announcement_model(self):
         announcement = Announcement(
             date="Aug 11, 2026",
@@ -75,6 +85,43 @@ class TestFetchAnnouncements(unittest.TestCase):
         self.assertEqual(announcement.image, "281033-1.gif")
         self.assertIsNone(announcement.pdf)
     
+    def test_announcement_attachment_urls(self):
+        announcement = Announcement(
+            date="May 19, 2026",
+            time="3:05 PM",
+            symbol="HUBC",
+            name="The Hub Power Company Limited",
+            title="Dividend Notice",
+            image="277488-1.gif, 277488-2.gif",
+            pdf="/download/document/277488.pdf",
+        )
+
+        self.assertEqual(
+            announcement.pdf_url,
+            "https://dps.psx.com.pk/download/document/277488.pdf",
+        )
+        self.assertEqual(
+            announcement.image_urls,
+            [
+                "https://dps.psx.com.pk/download/image/277488-1.gif",
+                "https://dps.psx.com.pk/download/image/277488-2.gif",
+            ],
+        )
+
+    def test_announcement_attachment_urls_when_empty(self):
+        announcement = Announcement(
+            date="Aug 11, 2026",
+            time="3:22 PM",
+            symbol="HUBC",
+            name="The Hub Power Company Limited",
+            title="Disclosure",
+            image=None,
+            pdf=None,
+        )
+
+        self.assertIsNone(announcement.pdf_url)
+        self.assertEqual(announcement.image_urls, [])
+
     def test_parse_announcements(self):
         from psx_data.announcements import parse_announcements
 
@@ -158,6 +205,7 @@ class TestFetchAnnouncements(unittest.TestCase):
             offset=0,
             date_from="2026-01-01",
             date_to="2026-08-10",
+            timeout=10.0,
         )
         mock_parse.assert_called_once_with(html)
         
@@ -190,6 +238,7 @@ class TestFetchAnnouncements(unittest.TestCase):
             offset=15,
             date_from="",
             date_to="",
+            timeout=10.0,
         )
         mock_parse.assert_called_once_with(html)
 
@@ -222,6 +271,7 @@ class TestFetchAnnouncements(unittest.TestCase):
             offset=0,
             date_from="2026-01-01",
             date_to="2026-08-10",
+            timeout=10.0,
         )
         mock_parse.assert_called_once_with(html)
 
@@ -284,6 +334,7 @@ class TestFetchAnnouncements(unittest.TestCase):
             offset=0,
             date_from="",
             date_to="",
+            timeout=10.0,
         )
 
         mock_get.assert_any_call(
@@ -292,6 +343,7 @@ class TestFetchAnnouncements(unittest.TestCase):
             offset=2,
             date_from="",
             date_to="",
+            timeout=10.0,
         )
 
         mock_get.assert_any_call(
@@ -300,6 +352,7 @@ class TestFetchAnnouncements(unittest.TestCase):
             offset=4,
             date_from="",
             date_to="",
+            timeout=10.0,
         )  
 
 if __name__ == "__main__":
