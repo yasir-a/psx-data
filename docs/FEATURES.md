@@ -10,9 +10,16 @@
   - [Fetching Announcements](#fetching-announcements)
   - [Auto-Paginating with Generator](#auto-paginating-with-generator)
   - [Data Model & Attachment URLs](#data-model--attachment-urls)
-- [3. Error Handling & Resilience](#3-error-handling--resilience)
-- [4. Command-Line Interface (CLI)](#4-command-line-interface-cli)
-- [5. Test Suite & Quality Assurance](#5-test-suite--quality-assurance)
+- [3. Storage & Export Utilities](#3-storage--export-utilities)
+  - [Downloading PDF / Image Attachments](#downloading-pdf--image-attachments)
+  - [Exporting to CSV](#exporting-to-csv)
+  - [Exporting to JSON](#exporting-to-json)
+- [4. Error Handling & Resilience](#4-error-handling--resilience)
+- [5. Command-Line Interface (CLI)](#5-command-line-interface-cli)
+  - [Available CLI Commands & Examples](#available-cli-commands--examples)
+  - [Exporting & Downloading via CLI](#exporting--downloading-via-cli)
+  - [Installing and Testing the Binary Command](#installing-and-testing-the-binary-command)
+- [6. Test Suite & Quality Assurance](#6-test-suite--quality-assurance)
 
 ---
 
@@ -34,10 +41,10 @@ Domain Models (Announcement dataclass)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
-Query Pagination  Storage (Coming next)
+Query Pagination  Storage (download_attachment, export_to_csv, export_to_json)
        │
        ▼
-Public API (get_announcements, iter_announcements)
+Public API (get_announcements, iter_announcements, storage utilities)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
@@ -90,7 +97,44 @@ Each announcement is an `Announcement` dataclass with automatic URL resolution:
 
 ---
 
-## 3. Error Handling & Resilience
+## 3. Storage & Export Utilities
+
+### Downloading PDF / Image Attachments
+Download official notice attachments directly to a local directory:
+
+```python
+from psx_data import get_announcements, download_attachment
+
+announcements = get_announcements(symbol="HUBC", count=5)
+for ann in announcements:
+    if ann.pdf_url:
+        file_path = download_attachment(ann.pdf_url, destination_dir="./downloads")
+        print(f"Saved: {file_path}")
+```
+
+### Exporting to CSV
+Save fetched announcements directly to a CSV file (compatible with Excel & pandas):
+
+```python
+from psx_data import get_announcements, export_to_csv
+
+announcements = get_announcements(symbol="HUBC", count=50)
+export_to_csv(announcements, "hubc_announcements.csv")
+```
+
+### Exporting to JSON
+Save announcements to a structured JSON file:
+
+```python
+from psx_data import get_announcements, export_to_json
+
+announcements = get_announcements(symbol="SYS", count=20)
+export_to_json(announcements, "sys_announcements.json")
+```
+
+---
+
+## 4. Error Handling & Resilience
 
 `psx-data` includes a built-in exception hierarchy and configurable network timeouts:
 
@@ -108,7 +152,7 @@ except PSXError as exc:
 
 ---
 
-## 4. Command-Line Interface (CLI)
+## 5. Command-Line Interface (CLI)
 
 ### Available CLI Commands & Examples
 
@@ -130,6 +174,16 @@ python -m psx_data.cli announcements --symbol HUBC --count 2 --json
 python -m psx_data.cli announcements --symbol OGDC --date-from 2026-01-01 --count 5
 ```
 
+### Exporting & Downloading via CLI
+
+```bash
+# Export announcements to CSV
+python -m psx_data.cli announcements --symbol HUBC --count 20 --csv hubc_announcements.csv
+
+# Download all PDF & image notices directly to a folder
+python -m psx_data.cli announcements --symbol HUBC --count 5 --download-dir ./hubc_files
+```
+
 ### Installing and Testing the Binary Command
 To install the package locally in editable mode and run the `psx-data` binary directly:
 
@@ -140,13 +194,13 @@ pip install -e .
 # Run the CLI binary directly from anywhere in your environment
 psx-data announcements --symbol HUBC --count 5
 psx-data announcements --symbol SYS --count 5
+psx-data announcements --symbol HUBC --csv hubc.csv
 ```
 
 ---
 
-## 5. Test Suite & Quality Assurance
+## 6. Test Suite & Quality Assurance
 
-* 18 unit tests using standard library `unittest`.
+* **24 unit tests** using standard library `unittest`.
 * Tested against offline PSX HTML fixtures and mock network layers.
 * Automated CI pipeline on GitHub Actions.
-
