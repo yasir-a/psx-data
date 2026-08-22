@@ -14,16 +14,20 @@
   - [Listing All Tickers & Symbols](#listing-all-tickers--symbols)
   - [Filtering by Sector and Query](#filtering-by-sector-and-query)
   - [Listing Market Sectors](#listing-market-sectors)
-- [4. Storage & Export Utilities](#4-storage--export-utilities)
+- [4. Market & Price Data (EOD & Intraday)](#4-market--price-data-eod--intraday)
+  - [End-of-Day (EOD) Historical OHLCV Candles](#end-of-day-eod-historical-ohlcv-candles)
+  - [Intraday Price Ticks](#intraday-price-ticks)
+- [5. Storage & Export Utilities](#5-storage--export-utilities)
   - [Downloading PDF / Image Attachments](#downloading-pdf--image-attachments)
   - [Exporting to CSV](#exporting-to-csv)
   - [Exporting to JSON](#exporting-to-json)
-- [5. Error Handling & Resilience](#5-error-handling--resilience)
-- [6. Command-Line Interface (CLI)](#6-command-line-interface-cli)
+- [6. Error Handling & Resilience](#6-error-handling--resilience)
+- [7. Command-Line Interface (CLI)](#7-command-line-interface-cli)
   - [Announcements Commands](#announcements-commands)
   - [Symbols & Sectors Commands](#symbols--sectors-commands)
+  - [Market Data Commands (EOD & Intraday)](#market-data-commands-eod--intraday)
   - [Installing and Testing Binary Command](#installing-and-testing-binary-command)
-- [7. Test Suite & Quality Assurance](#7-test-suite--quality-assurance)
+- [8. Test Suite & Quality Assurance](#8-test-suite--quality-assurance)
 
 ---
 
@@ -41,14 +45,14 @@ Data Collection (HTTP Clients & URL builders)
 Parsing (HTML streaming parser & JSON parsers)
        │
        ▼
-Domain Models (Announcement, Symbol)
+Domain Models (Announcement, Symbol, OHLCV, IntradayTick)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
 Query Pagination  Storage (download_attachment, export_to_csv, export_to_json)
        │
        ▼
-Public API (get_announcements, iter_announcements, get_symbols, get_tickers, get_sectors)
+Public API (get_announcements, get_symbols, get_eod, get_intraday, ...)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
@@ -141,7 +145,37 @@ for sector in sectors:
 
 ---
 
-## 4. Storage & Export Utilities
+## 4. Market & Price Data (EOD & Intraday)
+
+### End-of-Day (EOD) Historical OHLCV Candles
+Fetch historical daily prices, open, high, low, close, and volume for any stock or index:
+
+```python
+from psx_data import get_eod
+
+# Fetch recent 30 daily candles for HUBC
+candles = get_eod("HUBC", limit=30)
+for c in candles:
+    print(f"{c.date_str} | Open: {c.open:.2f} | Close: {c.close:.2f} | Vol: {c.volume:,}")
+
+# Fetch KSE-100 index history
+kse100 = get_eod("KSE100", limit=10)
+```
+
+### Intraday Price Ticks
+Fetch real-time intraday ticks for a trading day:
+
+```python
+from psx_data import get_intraday
+
+ticks = get_intraday("SYS", limit=20)
+for t in ticks:
+    print(f"[{t.time_str}] Price: {t.price:.2f} | Vol: {t.volume:,}")
+```
+
+---
+
+## 5. Storage & Export Utilities
 
 ### Downloading PDF / Image Attachments
 Download official notice attachments directly to a local directory:
@@ -178,16 +212,16 @@ export_to_json(announcements, "sys_announcements.json")
 
 ---
 
-## 5. Error Handling & Resilience
+## 6. Error Handling & Resilience
 
 `psx-data` includes a built-in exception hierarchy and configurable network timeouts:
 
 ```python
-from psx_data import get_announcements
+from psx_data import get_announcements, get_eod
 from psx_data.exceptions import PSXError, PSXNetworkError, PSXParseError
 
 try:
-    data = get_announcements(symbol="HUBC", timeout=5.0)
+    data = get_eod("HUBC", timeout=5.0)
 except PSXNetworkError as exc:
     print(f"Network failure: {exc}")
 except PSXError as exc:
@@ -196,7 +230,7 @@ except PSXError as exc:
 
 ---
 
-## 6. Command-Line Interface (CLI)
+## 7. Command-Line Interface (CLI)
 
 ### Announcements Commands
 
@@ -204,6 +238,8 @@ except PSXError as exc:
 # 1. Fetch recent announcements (Text output)
 psx-data announcements --symbol HUBC --count 5
 psx-data announcements --symbol SYS --count 5
+# Or via module:
+python -m psx_data.cli announcements --symbol HUBC --count 5
 
 # 2. Output in JSON format
 psx-data announcements --symbol HUBC --count 2 --json
@@ -240,9 +276,24 @@ python -m psx_data.cli symbols --sector "COMMERCIAL BANKS"
 # 4. Export symbols list to CSV or JSON
 psx-data symbols --csv all_symbols.csv
 psx-data symbols --query "Bank" --json
+```
+
+### Market Data Commands (EOD & Intraday)
+
+```bash
+# 1. Fetch historical EOD prices (table format)
+psx-data eod --symbol HUBC --limit 10
+psx-data eod --symbol KSE100 --limit 10
 # Or via module:
-python -m psx_data.cli symbols --csv all_symbols.csv
-python -m psx_data.cli symbols --query "Bank" --json
+python -m psx_data.cli eod --symbol HUBC --limit 10
+
+# 2. Export historical prices to CSV
+psx-data eod --symbol OGDC --limit 50 --csv ogdc_prices.csv
+
+# 3. Fetch real-time intraday ticks
+psx-data intraday --symbol SYS --limit 15
+# Or via module:
+python -m psx_data.cli intraday --symbol SYS --limit 15
 ```
 
 ### Installing and Testing Binary Command
@@ -256,14 +307,15 @@ pip install -e .
 psx-data --help
 psx-data sectors
 psx-data symbols --query "OGDC"
+psx-data eod --symbol HUBC --limit 5
+psx-data intraday --symbol SYS --limit 5
 psx-data announcements --symbol HUBC --count 5
 ```
 
 ---
 
-## 7. Test Suite & Quality Assurance
+## 8. Test Suite & Quality Assurance
 
-* **34 unit tests** using standard library `unittest`.
+* **45 unit tests** using standard library `unittest`.
 * Tested against offline PSX HTML and JSON fixtures as well as mock network layers.
 * Automated CI pipeline on GitHub Actions.
-
