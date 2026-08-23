@@ -225,15 +225,17 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 * ✅ **Corporate Announcements Client** ([`src/psx_data/announcements.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/announcements.py)): Single-page fetch, streaming generator pagination (`iter_announcements`), date/symbol filtering, `pdf_url` and `image_urls` property resolvers.
 * ✅ **Symbols & Sectors Directory** ([`src/psx_data/symbols.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/symbols.py)): Listed tickers, company names, market sectors, query substring search, and sector listing.
 * ✅ **Market & Price Data** ([`src/psx_data/market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py)): Historical EOD OHLCV daily bars (`get_eod`) and real-time Intraday ticks (`get_intraday`).
+* ✅ **Major Market Indices Dashboard** ([`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py)): Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`, etc.).
 * ✅ **Storage & Export Utilities** ([`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py)): Binary notice downloader (`download_attachment`), CSV exporter (`export_to_csv`), and JSON exporter (`export_to_json`).
-* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `eod`, and `intraday` supporting `--json`, `--csv`, and `--download-dir`.
+* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, and `intraday` supporting `--json`, `--csv`, and `--download-dir`.
 * ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
 * ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
 
 ### Pending Roadmap Items
-* ⏳ **PSX Major Indices Dashboard (`src/psx_data/indices.py`)**: Current points, percentage change, and volume for benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`).
+* ⏳ **Local SQLite Storage Layer (`src/psx_data/db.py`)**: Local caching and relational storage for announcements, historical candles, and symbols.
 * ⏳ **Company Fundamentals & Profiles (`src/psx_data/companies.py`)**: Listed shares, market cap, executive info, and profile summaries from `dps.psx.com.pk/company/{SYMBOL}`.
 * ⏳ **Financial Statements / Ratio Analysis (`src/psx_data/financials.py`)**: Balance sheets, income statements, and dividend histories.
+* ⏳ **Frontend Web UI**: React + Vite application for real-time visualization and browsing.
 * ⏳ **Release `v0.2.0` Prep**: Updating `CHANGELOG.md`, `pyproject.toml`, and creating git release tags.
 
 ---

@@ -1,0 +1,49 @@
+{
+  "status": 1,
+  "data": [
+    {
+      "index": "KSE100",
+      "name": "KSE 100 Index",
+      "current": 78456.20,
+      "change": 345.80,
+      "percent_change": 0.44,
+      "high": 78600.50,
+      "low": 78100.10,
+      "volume": 215430800,
+      "status": "UP"
+    },
+    {
+      "index": "KSE30",
+      "name": "KSE 30 Index",
+      "current": 25120.40,
+      "change": -85.20,
+      "percent_change": -0.34,
+      "high": 25250.00,
+      "low": 25050.10,
+      "volume": 98400500,
+      "status": "DOWN"
+    },
+    {
+      "index": "KMI30",
+      "name": "KMI 30 Index (Islamic)",
+      "current": 128940.10,
+      "change": 612.30,
+      "percent_change": 0.48,
+      "high": 129100.00,
+      "low": 128300.50,
+      "volume": 145200300,
+      "status": "UP"
+    },
+    {
+      "index": "ALLSHR",
+      "name": "All Share Index",
+      "current": 50123.80,
+      "change": 190.40,
+      "percent_change": 0.38,
+      "high": 50250.00,
+      "low": 49950.00,
+      "volume": 412500600,
+      "status": "UP"
+    }
+  ]
+}

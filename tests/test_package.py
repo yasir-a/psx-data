@@ -10,6 +10,7 @@ class TestPackage(unittest.TestCase):
 
     def test_public_api_import(self):
         from psx_data import (
+            IndexSummary,
             OHLCV,
             Announcement,
             IntradayTick,
@@ -18,6 +19,8 @@ class TestPackage(unittest.TestCase):
             download_attachment,
             get_announcements,
             get_eod,
+            get_index,
+            get_indices,
             get_intraday,
             get_sectors,
             get_symbols,
@@ -28,12 +31,15 @@ class TestPackage(unittest.TestCase):
         self.assertIsNotNone(Symbol)
         self.assertIsNotNone(OHLCV)
         self.assertIsNotNone(IntradayTick)
+        self.assertIsNotNone(IndexSummary)
         self.assertIsNotNone(get_announcements)
         self.assertIsNotNone(get_symbols)
         self.assertIsNotNone(get_tickers)
         self.assertIsNotNone(get_sectors)
         self.assertIsNotNone(get_eod)
         self.assertIsNotNone(get_intraday)
+        self.assertIsNotNone(get_indices)
+        self.assertIsNotNone(get_index)
         self.assertIsNotNone(download_attachment)
         self.assertIsNotNone(PSXError)
 

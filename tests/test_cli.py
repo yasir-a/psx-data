@@ -164,5 +164,29 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Intraday Price Ticks: SYS", fake_out.getvalue())
         self.assertIn("149.80", fake_out.getvalue())
 
+    @patch("psx_data.cli.get_indices")
+    def test_cli_indices_output(self, mock_get_indices):
+        from psx_data.indices import IndexSummary
+        mock_get_indices.return_value = [
+            IndexSummary(
+                index="KSE100",
+                name="KSE 100 Index",
+                current=78456.20,
+                change=345.80,
+                percent_change=0.44,
+                high=78600.50,
+                low=78100.10,
+                volume=215430800,
+                status="UP",
+            )
+        ]
+
+        with patch("sys.stdout", new=io.StringIO()) as fake_out:
+            exit_code = main(["indices"])
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("KSE100", fake_out.getvalue())
+        self.assertIn("78456.20", fake_out.getvalue())
+        self.assertIn("+345.80", fake_out.getvalue())
 if __name__ == "__main__":
     unittest.main()
