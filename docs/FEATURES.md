@@ -20,21 +20,24 @@
 - [5. Market & Price Data (EOD & Intraday)](#5-market--price-data-eod--intraday)
   - [End-of-Day (EOD) Historical OHLCV Candles](#end-of-day-eod-historical-ohlcv-candles)
   - [Intraday Price Ticks](#intraday-price-ticks)
-- [6. SQLite Local Storage & Cache](#6-sqlite-local-storage--cache)
+- [6. Company Fundamentals & Profiles](#6-company-fundamentals--profiles)
+  - [Fetching Company Metadata & Profiles](#fetching-company-metadata--profiles)
+- [7. SQLite Local Storage & Cache](#7-sqlite-local-storage--cache)
   - [Database Operations in Python](#database-operations-in-python)
-- [7. Storage & Export Utilities](#7-storage--export-utilities)
+- [8. Storage & Export Utilities](#8-storage--export-utilities)
   - [Downloading PDF / Image Attachments](#downloading-pdf--image-attachments)
   - [Exporting to CSV](#exporting-to-csv)
   - [Exporting to JSON](#exporting-to-json)
-- [8. Error Handling & Resilience](#8-error-handling--resilience)
-- [9. Command-Line Interface (CLI)](#9-command-line-interface-cli)
+- [9. Error Handling & Resilience](#9-error-handling--resilience)
+- [10. Command-Line Interface (CLI)](#10-command-line-interface-cli)
   - [Announcements Commands](#announcements-commands)
   - [Symbols & Sectors Commands](#symbols--sectors-commands)
   - [Indices Commands](#indices-commands)
   - [Market Data Commands (EOD & Intraday)](#market-data-commands-eod--intraday)
+  - [Company Profile Commands](#company-profile-commands)
   - [Database Commands (SQLite Cache)](#database-commands-sqlite-cache)
   - [Installing and Testing Binary Command](#installing-and-testing-binary-command)
-- [10. Test Suite & Quality Assurance](#10-test-suite--quality-assurance)
+- [11. Test Suite & Quality Assurance](#11-test-suite--quality-assurance)
 
 ---
 
@@ -203,7 +206,31 @@ for t in ticks:
 
 ---
 
-## 6. SQLite Local Storage & Cache
+## 6. Company Fundamentals & Profiles
+
+Scrape and parse fundamental corporate metadata, executive leadership, listed shares, market capitalization, and contact details from the PSX company portal.
+
+### Fetching Company Metadata & Profiles
+
+```python
+from psx_data import get_company_profile
+
+profile = get_company_profile("HUBC")
+if profile:
+    print(f"Company:      {profile.name}")
+    print(f"CEO:          {profile.ceo}")
+    print(f"Chairman:     {profile.chairperson}")
+    print(f"Auditor:      {profile.auditor}")
+    print(f"Shares:       {profile.shares_listed:,}")
+    print(f"Free Float:   {profile.free_float:,}")
+    print(f"Market Cap:   PKR {profile.market_cap:,.2f}")
+    print(f"Website:      {profile.website}")
+    print(f"Address:      {profile.address}")
+```
+
+---
+
+## 7. SQLite Local Storage & Cache
 
 `psx-data` includes a built-in relational persistence and caching layer based on Python's standard `sqlite3` library.
 
@@ -384,6 +411,22 @@ psx-data intraday --symbol SYS --limit 15
 python -m psx_data.cli intraday --symbol SYS --limit 15
 ```
 
+### Company Profile Commands
+
+```bash
+# 1. Inspect company profile and fundamentals
+psx-data company --symbol HUBC
+psx-data company --symbol SYS
+# Or via module:
+python -m psx_data.cli company --symbol HUBC
+
+# 2. Output in structured JSON format
+psx-data company --symbol HUBC --json
+
+# 3. Fetch and cache profile into local SQLite database
+psx-data company --symbol HUBC --save
+```
+
 ### Database Commands (SQLite Cache)
 
 ```bash
@@ -412,6 +455,7 @@ pip install -e .
 
 # Run directly from anywhere in your environment
 psx-data --help
+psx-data company --symbol HUBC
 psx-data db status
 psx-data db sync-symbols
 psx-data indices
@@ -424,8 +468,8 @@ psx-data announcements --symbol HUBC --count 5
 
 ---
 
-## 10. Test Suite & Quality Assurance
+## 11. Test Suite & Quality Assurance
 
-* **62 unit tests** using standard library `unittest`.
+* **69 unit tests** using standard library `unittest`.
 * Tested against offline PSX HTML and JSON fixtures as well as mock network layers.
 * Automated CI pipeline on GitHub Actions.

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from psx_data import (
     get_announcements,
+    get_company_profile,
     get_db_stats,
     get_eod,
     get_index,
@@ -17,6 +18,7 @@ from psx_data import (
     get_sectors,
     get_symbols,
     init_db,
+    save_company_profile,
     save_eod,
     save_symbols,
 )
@@ -264,6 +266,29 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default=str(DEFAULT_DB_PATH),
         help=f"Database file path (default: {DEFAULT_DB_PATH})",
+    )
+
+        # Subcommand: company
+    comp_parser = subparsers.add_parser(
+        "company",
+        help="Fetch company fundamentals and profile (CEO, shares, market cap)",
+    )
+    comp_parser.add_argument(
+        "--symbol",
+        "-s",
+        type=str,
+        required=True,
+        help="Stock ticker symbol (e.g. HUBC, SYS, OGDC)",
+    )
+    comp_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output in JSON format",
+    )
+    comp_parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Cache profile into local SQLite database",
     )
 
     return parser
@@ -543,6 +568,49 @@ def handle_db(args: argparse.Namespace) -> int:
 
     return 0
 
+def handle_company(args: argparse.Namespace) -> int:
+    try:
+        profile = get_company_profile(args.symbol)
+    except PSXError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if not profile:
+        print(f"No company profile found for symbol '{args.symbol}'.")
+        return 0
+
+    if args.save:
+        save_company_profile(profile)
+        print(f"Cached profile for {profile.symbol} to SQLite database.")
+
+    if args.json:
+        print(json.dumps(asdict(profile), indent=2))
+        return 0
+
+    print(f"=== {profile.symbol} - {profile.name} ===")
+    if profile.sector:
+        print(f"Sector:          {profile.sector}")
+    if profile.market_cap:
+        print(f"Market Cap:      PKR {profile.market_cap:,.2f}")
+    if profile.shares_listed:
+        print(f"Shares Listed:   {profile.shares_listed:,}")
+    if profile.free_float:
+        print(f"Free Float:      {profile.free_float:,}")
+    if profile.ceo:
+        print(f"CEO:             {profile.ceo}")
+    if profile.chairperson:
+        print(f"Chairperson:     {profile.chairperson}")
+    if profile.auditor:
+        print(f"Auditor:         {profile.auditor}")
+    if profile.website:
+        print(f"Website:         {profile.website}")
+    if profile.address:
+        print(f"Address:         {profile.address}")
+    if profile.fiscal_year_end:
+        print(f"Fiscal Year End: {profile.fiscal_year_end}")
+
+    return 0
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
@@ -562,6 +630,8 @@ def main(argv: list[str] | None = None) -> int:
         return handle_indices(args)
     elif args.command == "db":
         return handle_db(args)
+    elif args.command == "company":
+        return handle_company(args)
 
     return 0
 
