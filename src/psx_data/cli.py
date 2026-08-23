@@ -9,13 +9,18 @@ from pathlib import Path
 
 from psx_data import (
     get_announcements,
+    get_db_stats,
     get_eod,
     get_index,
     get_indices,
     get_intraday,
     get_sectors,
     get_symbols,
+    init_db,
+    save_eod,
+    save_symbols,
 )
+from psx_data.db import DEFAULT_DB_PATH
 from psx_data.exceptions import PSXError
 from psx_data.storage import download_attachment, export_to_csv
 
@@ -196,6 +201,69 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default="",
         help="Save indices to a CSV file path",
+    )
+
+    # Subcommand: db
+    db_parser = subparsers.add_parser(
+        "db",
+        help="Manage local SQLite cache and database storage",
+    )
+    db_subparsers = db_parser.add_subparsers(dest="db_action", required=True)
+
+    # Action: init
+    db_init_parser = db_subparsers.add_parser("init", help="Initialize SQLite database tables")
+    db_init_parser.add_argument(
+        "--db",
+        type=str,
+        default=str(DEFAULT_DB_PATH),
+        help=f"Database file path (default: {DEFAULT_DB_PATH})",
+    )
+
+    # Action: status
+    db_status_parser = db_subparsers.add_parser("status", help="Show SQLite database statistics")
+    db_status_parser.add_argument(
+        "--db",
+        type=str,
+        default=str(DEFAULT_DB_PATH),
+        help=f"Database file path (default: {DEFAULT_DB_PATH})",
+    )
+
+    # Action: sync-symbols
+    db_sync_sym_parser = db_subparsers.add_parser(
+        "sync-symbols",
+        help="Fetch all symbols from PSX and cache in SQLite",
+    )
+    db_sync_sym_parser.add_argument(
+        "--db",
+        type=str,
+        default=str(DEFAULT_DB_PATH),
+        help=f"Database file path (default: {DEFAULT_DB_PATH})",
+    )
+
+    # Action: sync-eod
+    db_sync_eod_parser = db_subparsers.add_parser(
+        "sync-eod",
+        help="Fetch EOD candles for a symbol and cache in SQLite",
+    )
+    db_sync_eod_parser.add_argument(
+        "--symbol",
+        "-s",
+        type=str,
+        required=True,
+        help="Stock ticker symbol (e.g. HUBC, SYS)",
+    )
+    db_sync_eod_parser.add_argument(
+        "--limit",
+        "-l",
+        type=int,
+        default=100,
+        help="Number of EOD candles to fetch and cache (default: 100)",
+    )
+    db_sync_eod_parser.add_argument(
+        "--db",
+        type=str,
+        default=str(DEFAULT_DB_PATH),
+        help=f"Database file path (default: {DEFAULT_DB_PATH})",
     )
 
     return parser
@@ -434,6 +502,47 @@ def handle_indices(args: argparse.Namespace) -> int:
 
     return 0
 
+def handle_db(args: argparse.Namespace) -> int:
+    db_path = Path(args.db)
+
+    if args.db_action == "init":
+        path = init_db(db_path)
+        print(f"Initialized SQLite database at: {path.resolve()}")
+        return 0
+
+    elif args.db_action == "status":
+        stats = get_db_stats(db_path)
+        print(f"--- Database Status: {db_path} ---")
+        print(f"Symbols:        {stats.get('symbols', 0):,}")
+        print(f"Announcements:  {stats.get('announcements', 0):,}")
+        print(f"EOD Candles:    {stats.get('eod_candles', 0):,}")
+        return 0
+
+    elif args.db_action == "sync-symbols":
+        try:
+            symbols = get_symbols()
+            count = save_symbols(symbols, db_path=db_path)
+            print(f"Successfully cached {count} symbols to {db_path}")
+            return 0
+        except PSXError as exc:
+            print(f"Error syncing symbols: {exc}", file=sys.stderr)
+            return 1
+
+    elif args.db_action == "sync-eod":
+        try:
+            candles = get_eod(symbol=args.symbol, limit=args.limit)
+            if not candles:
+                print(f"No EOD data found for '{args.symbol}' to cache.")
+                return 0
+            count = save_eod(symbol=args.symbol, candles=candles, db_path=db_path)
+            print(f"Successfully cached {count} EOD candles for {args.symbol.upper()} to {db_path}")
+            return 0
+        except PSXError as exc:
+            print(f"Error syncing EOD data: {exc}", file=sys.stderr)
+            return 1
+
+    return 0
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
@@ -451,6 +560,8 @@ def main(argv: list[str] | None = None) -> int:
         return handle_intraday(args)
     elif args.command == "indices":
         return handle_indices(args)
+    elif args.command == "db":
+        return handle_db(args)
 
     return 0
 

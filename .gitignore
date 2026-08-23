@@ -14,10 +14,11 @@ htmlcov/
 .env
 .env.*
 
-# Local databases
+# SQLite local database files
 *.db
 *.sqlite
 *.sqlite3
+psx_data.db
 
 # IDE
 .vscode/

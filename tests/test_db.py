@@ -89,6 +89,19 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(len(history), 2)
         self.assertEqual(history[0].open, 145.0)
         self.assertEqual(history[1].close, 149.0)
+    
+    def test_get_db_stats(self):
+        from psx_data.db import get_db_stats
+
+        stats = get_db_stats(db_path=self.db_path)
+        self.assertEqual(stats["symbols"], 0)
+        self.assertEqual(stats["announcements"], 0)
+        self.assertEqual(stats["eod_candles"], 0)
+
+        # Save symbol and verify count increases
+        save_symbols([Symbol(symbol="HUBC", name="Hub Power", sector="POWER")], db_path=self.db_path)
+        stats = get_db_stats(db_path=self.db_path)
+        self.assertEqual(stats["symbols"], 1)
 
 
 if __name__ == "__main__":

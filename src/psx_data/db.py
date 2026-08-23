@@ -260,3 +260,17 @@ def query_eod(
         ]
     finally:
         conn.close()
+
+def get_db_stats(db_path: str | Path = DEFAULT_DB_PATH) -> dict[str, int]:
+    """Get record counts for all tables in the SQLite database."""
+    init_db(db_path)
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.cursor()
+        stats: dict[str, int] = {}
+        for table in ["symbols", "announcements", "eod_candles"]:
+            cursor.execute(f"SELECT COUNT(*) FROM {table}")
+            stats[table] = cursor.fetchone()[0]
+        return stats
+    finally:
+        conn.close()
