@@ -1,6 +1,7 @@
 import io
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from psx_data.announcements import Announcement
@@ -188,5 +189,56 @@ class TestCLI(unittest.TestCase):
         self.assertIn("KSE100", fake_out.getvalue())
         self.assertIn("78456.20", fake_out.getvalue())
         self.assertIn("+345.80", fake_out.getvalue())
+
+    @patch("sys.stdout", new_callable=io.StringIO)
+    def test_cli_db_init_and_status(self, mock_stdout):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_db = Path(tmpdir) / "cli_test.db"
+
+            code = main(["db", "init", "--db", str(test_db)])
+            self.assertEqual(code, 0)
+            self.assertIn("Initialized SQLite database", mock_stdout.getvalue())
+
+            mock_stdout.seek(0)
+            mock_stdout.truncate(0)
+
+            code = main(["db", "status", "--db", str(test_db)])
+            self.assertEqual(code, 0)
+            self.assertIn("Database Status", mock_stdout.getvalue())
+            self.assertIn("Symbols:        0", mock_stdout.getvalue())
+
+    @patch("psx_data.cli.get_symbols")
+    @patch("sys.stdout", new_callable=io.StringIO)
+    def test_cli_db_sync_symbols(self, mock_stdout, mock_get_symbols):
+        from psx_data.symbols import Symbol
+        mock_get_symbols.return_value = [
+            Symbol(symbol="HUBC", name="The Hub Power Company", sector="POWER")
+        ]
+
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_db = Path(tmpdir) / "cli_test.db"
+
+            code = main(["db", "sync-symbols", "--db", str(test_db)])
+            self.assertEqual(code, 0)
+            self.assertIn("Successfully cached 1 symbols", mock_stdout.getvalue())
+
+    @patch("psx_data.cli.get_eod")
+    @patch("sys.stdout", new_callable=io.StringIO)
+    def test_cli_db_sync_eod(self, mock_stdout, mock_get_eod):
+        from psx_data.market import OHLCV
+        mock_get_eod.return_value = [
+            OHLCV(timestamp=1723334400, open=145.0, high=148.0, low=144.0, close=147.0, volume=50000)
+        ]
+
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_db = Path(tmpdir) / "cli_test.db"
+
+            code = main(["db", "sync-eod", "--symbol", "HUBC", "--db", str(test_db)])
+            self.assertEqual(code, 0)
+            self.assertIn("Successfully cached 1 EOD candles for HUBC", mock_stdout.getvalue())
+    
 if __name__ == "__main__":
     unittest.main()

@@ -20,18 +20,21 @@
 - [5. Market & Price Data (EOD & Intraday)](#5-market--price-data-eod--intraday)
   - [End-of-Day (EOD) Historical OHLCV Candles](#end-of-day-eod-historical-ohlcv-candles)
   - [Intraday Price Ticks](#intraday-price-ticks)
-- [6. Storage & Export Utilities](#6-storage--export-utilities)
+- [6. SQLite Local Storage & Cache](#6-sqlite-local-storage--cache)
+  - [Database Operations in Python](#database-operations-in-python)
+- [7. Storage & Export Utilities](#7-storage--export-utilities)
   - [Downloading PDF / Image Attachments](#downloading-pdf--image-attachments)
   - [Exporting to CSV](#exporting-to-csv)
   - [Exporting to JSON](#exporting-to-json)
-- [7. Error Handling & Resilience](#7-error-handling--resilience)
-- [8. Command-Line Interface (CLI)](#8-command-line-interface-cli)
+- [8. Error Handling & Resilience](#8-error-handling--resilience)
+- [9. Command-Line Interface (CLI)](#9-command-line-interface-cli)
   - [Announcements Commands](#announcements-commands)
   - [Symbols & Sectors Commands](#symbols--sectors-commands)
   - [Indices Commands](#indices-commands)
   - [Market Data Commands (EOD & Intraday)](#market-data-commands-eod--intraday)
+  - [Database Commands (SQLite Cache)](#database-commands-sqlite-cache)
   - [Installing and Testing Binary Command](#installing-and-testing-binary-command)
-- [9. Test Suite & Quality Assurance](#9-test-suite--quality-assurance)
+- [10. Test Suite & Quality Assurance](#10-test-suite--quality-assurance)
 
 ---
 
@@ -200,7 +203,51 @@ for t in ticks:
 
 ---
 
-## 6. Storage & Export Utilities
+## 6. SQLite Local Storage & Cache
+
+`psx-data` includes a built-in relational persistence and caching layer based on Python's standard `sqlite3` library.
+
+### Database Operations in Python
+
+```python
+from psx_data import (
+    init_db,
+    save_symbols,
+    query_symbols,
+    save_announcements,
+    query_announcements,
+    save_eod,
+    query_eod,
+    get_db_stats,
+    get_symbols,
+    get_eod,
+)
+
+# 1. Initialize database schema
+init_db("psx_data.db")
+
+# 2. Fetch and cache listed symbols
+symbols = get_symbols()
+save_symbols(symbols)
+
+# 3. Query cached symbols offline
+tech_symbols = query_symbols(sector="TECHNOLOGY")
+
+# 4. Fetch and cache historical EOD candles
+candles = get_eod("HUBC", limit=100)
+save_eod("HUBC", candles)
+
+# 5. Query cached candles offline
+cached_candles = query_eod("HUBC", limit=30)
+
+# 6. Check database record statistics
+stats = get_db_stats("psx_data.db")
+print(stats)  # {'symbols': 523, 'announcements': 120, 'eod_candles': 100}
+```
+
+---
+
+## 7. Storage & Export Utilities
 
 ### Downloading PDF / Image Attachments
 Download official notice attachments directly to a local directory:
@@ -337,6 +384,25 @@ psx-data intraday --symbol SYS --limit 15
 python -m psx_data.cli intraday --symbol SYS --limit 15
 ```
 
+### Database Commands (SQLite Cache)
+
+```bash
+# 1. Initialize SQLite database schema
+psx-data db init
+# Or with custom path:
+psx-data db init --db my_cache.db
+
+# 2. Show database status and record counts
+psx-data db status
+
+# 3. Fetch and cache all listed symbols into SQLite
+psx-data db sync-symbols
+
+# 4. Fetch and cache historical EOD candles for a symbol
+psx-data db sync-eod --symbol HUBC --limit 50
+psx-data db sync-eod --symbol SYS --limit 100
+```
+
 ### Installing and Testing Binary Command
 To install the package locally in editable mode and run the `psx-data` binary directly from anywhere:
 
@@ -346,6 +412,8 @@ pip install -e .
 
 # Run directly from anywhere in your environment
 psx-data --help
+psx-data db status
+psx-data db sync-symbols
 psx-data indices
 psx-data sectors
 psx-data symbols --query "OGDC"
@@ -356,8 +424,8 @@ psx-data announcements --symbol HUBC --count 5
 
 ---
 
-## 9. Test Suite & Quality Assurance
+## 10. Test Suite & Quality Assurance
 
-* **54 unit tests** using standard library `unittest`.
+* **62 unit tests** using standard library `unittest`.
 * Tested against offline PSX HTML and JSON fixtures as well as mock network layers.
 * Automated CI pipeline on GitHub Actions.

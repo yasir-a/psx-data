@@ -237,7 +237,7 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
   .\.venv\Scripts\python.exe -m unittest tests/test_db.py -v
   ```
 * **Windows SQLite note**: All `sqlite3` connections opened in tests must call `.close()` explicitly (not just rely on context manager) before `tearDown`'s `tempfile.TemporaryDirectory.cleanup()` runs, to avoid `PermissionError: [WinError 32]` file-lock errors.
-* **Verification rule**: The entire test suite (**currently 58 tests**) must pass with `OK` before opening any PR or concluding a task.
+* **Verification rule**: The entire test suite (**currently 62 tests**) must pass with `OK` before opening any PR or concluding a task.
 
 ---
 
@@ -248,14 +248,13 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 * ✅ **Symbols & Sectors Directory** ([`src/psx_data/symbols.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/symbols.py)): Listed tickers, company names, market sectors, query substring search, and sector listing.
 * ✅ **Market & Price Data** ([`src/psx_data/market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py)): Historical EOD OHLCV daily bars (`get_eod`) and real-time Intraday ticks (`get_intraday`). Resilient `parse_eod` handles float volumes and variable-length timeseries arrays.
 * ✅ **Major Market Indices Dashboard** ([`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py)): Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`) via `/timeseries/int/{INDEX}` endpoint; computes open/high/low/close/volume from intraday ticks.
-* ✅ **Local SQLite Storage Layer** ([`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py)): Relational caching via `sqlite3` (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`). All connections explicitly closed for Windows compatibility.
+* ✅ **Local SQLite Storage Layer** ([`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py)): Relational caching via `sqlite3` (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`, `get_db_stats`).
 * ✅ **Storage & Export Utilities** ([`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py)): Binary notice downloader (`download_attachment`), CSV exporter (`export_to_csv`), and JSON exporter (`export_to_json`).
-* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, and `intraday` supporting `--json`, `--csv`, and `--download-dir`. A `db` subcommand is listed in module table but **not yet wired into CLI** — this is a known gap.
+* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, and `db` (`init`, `status`, `sync-symbols`, `sync-eod`).
 * ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
 * ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
 
 ### Pending Roadmap Items
-* ⏳ **`db` CLI subcommand**: Wire `psx-data db sync-symbols`, `psx-data db status`, `psx-data db sync-eod --symbol HUBC` into `src/psx_data/cli.py`.
 * ⏳ **Company Fundamentals & Profiles (`src/psx_data/companies.py`)**: Listed shares, market cap, executive info, and profile summaries from `dps.psx.com.pk/company/{SYMBOL}`.
 * ⏳ **Financial Statements / Ratio Analysis (`src/psx_data/financials.py`)**: Balance sheets, income statements, and dividend histories.
 * ⏳ **Frontend Web UI**: React + Vite application for real-time visualization and browsing.

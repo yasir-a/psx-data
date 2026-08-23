@@ -4,6 +4,7 @@ from psx_data.announcements import (
     iter_announcements,
 )
 from psx_data.db import (
+    get_db_stats,
     init_db,
     query_announcements,
     query_eod,
@@ -84,4 +85,5 @@ __all__ = [
     "query_announcements",
     "save_eod",
     "query_eod",
+    "get_db_stats",
 ]
