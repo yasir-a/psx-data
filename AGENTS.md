@@ -14,7 +14,9 @@
   * Provide a feature-rich CLI for terminal users and shell scripting.
   * Adhere strictly to a **zero-dependency philosophy** by using only Python's standard library.
   * Maintain comprehensive test coverage using unit tests with offline HTML/JSON fixtures and mock network layers.
-* **Current Scope**: Corporate Announcements, Symbols & Sectors Directory, EOD & Intraday Market Data, Attachment Downloads (PDFs/Images), and Data Exporters (CSV/JSON).
+  * Provide a local SQLite caching layer for offline access to persisted data.
+  * Long-term: serve data to a **React + Vite frontend UI**.
+* **Current Scope**: Corporate Announcements, Symbols & Sectors Directory, EOD & Intraday Market Data, Market Indices Dashboard, SQLite Local Storage & Cache, Attachment Downloads (PDFs/Images), and Data Exporters (CSV/JSON).
 
 ---
 
@@ -99,7 +101,9 @@ psx-data/
 │       ├── __init__.py               # Top-level public package exports
 │       ├── announcements.py          # Corporate announcements scraper & parser
 │       ├── cli.py                    # Command-line interface entry point
+│       ├── db.py                     # SQLite local persistence and caching layer
 │       ├── exceptions.py             # Custom exceptions hierarchy
+│       ├── indices.py                # Major market indices dashboard (KSE100, KSE30, KMI30, ALLSHR)
 │       ├── market.py                 # EOD historical OHLCV & Intraday ticks
 │       ├── storage.py                # Attachment downloader & CSV/JSON exporters
 │       └── symbols.py                # Listed companies & market sectors directory
@@ -107,10 +111,13 @@ psx-data/
 │   ├── fixtures/
 │   │   ├── announcements_hubc.html   # Offline HTML fixture for announcement parser
 │   │   ├── eod_hubc.json             # Offline JSON fixture for EOD candles
+│   │   ├── indices.json              # Offline JSON fixture for indices
 │   │   ├── intraday_hubc.json        # Offline JSON fixture for intraday ticks
 │   │   └── symbols.json              # Offline JSON fixture for listed symbols
 │   ├── test_announcements.py         # Announcements unit & pagination tests
 │   ├── test_cli.py                   # CLI subcommands & argument parsing tests
+│   ├── test_db.py                    # SQLite storage unit tests (uses temp file, not mocks)
+│   ├── test_indices.py               # Indices parser/fetcher tests
 │   ├── test_market.py                # Market EOD & Intraday parser/fetcher tests
 │   ├── test_package.py               # Package & public API import verification tests
 │   ├── test_storage.py               # File downloads & CSV/JSON export tests
@@ -126,16 +133,26 @@ psx-data/
 └── SECURITY.md                       # Security vulnerability policy
 ```
 
+
 ---
 
 ## 4. Technology Stack & Environment
 
 * **Language**: Python 3.11+ (typed, modern dataclasses, union syntax `str | None`).
-* **Runtime Dependencies**: **None**. Zero external runtime dependencies. Only Python Standard Library (`urllib`, `html.parser`, `dataclasses`, `datetime`, `json`, `csv`, `pathlib`, `argparse`, `sys`).
+* **Runtime Dependencies**: **None**. Zero external runtime dependencies. Only Python Standard Library (`urllib`, `html.parser`, `dataclasses`, `datetime`, `json`, `csv`, `sqlite3`, `pathlib`, `argparse`, `sys`).
 * **Build System**: `setuptools>=68` configured via [`pyproject.toml`](file:///c:/Users/yasir/projects/psx-data/pyproject.toml) using a `src/` layout.
 * **CLI Entry Point**: `psx-data = "psx_data.cli:main"` registered in `[project.scripts]`.
-* **Testing Framework**: Python standard `unittest` with `unittest.mock` (offline execution with fixtures, no external network requests during tests).
+* **Virtual Environment**: `.venv/` at the project root. Always activate before running tests or CLI commands:
+  ```powershell
+  .\.venv\Scripts\Activate.ps1
+  ```
+  Or run directly:
+  ```powershell
+  .\.venv\Scripts\python.exe -m unittest discover -s tests -v
+  ```
+* **Testing Framework**: Python standard `unittest` with `unittest.mock` (offline execution with fixtures, no external network requests during tests). `test_db.py` uses `tempfile.TemporaryDirectory` for real SQLite isolation — all connections must be explicitly `.close()`d before `tearDown` to avoid Windows file-lock errors.
 * **CI/CD**: GitHub Actions running on `ubuntu-latest` with Python 3.11 (`python -m unittest discover -s tests -v`).
+
 
 ---
 
@@ -205,19 +222,22 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 
 ## 8. Testing Instructions
 
-* **Run complete test suite**:
+* **Run complete test suite** (activate venv first):
   ```powershell
-  python -m unittest discover -s tests -v
+  .\.venv\Scripts\python.exe -m unittest discover -s tests -v
   ```
 * **Run specific test file**:
   ```powershell
-  python -m unittest tests/test_announcements.py -v
-  python -m unittest tests/test_market.py -v
-  python -m unittest tests/test_symbols.py -v
-  python -m unittest tests/test_storage.py -v
-  python -m unittest tests/test_cli.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_announcements.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_market.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_symbols.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_storage.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_cli.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_indices.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_db.py -v
   ```
-* **Verification rule**: The entire test suite (currently 45+ tests) must pass with `OK` before opening any PR or concluding a task.
+* **Windows SQLite note**: All `sqlite3` connections opened in tests must call `.close()` explicitly (not just rely on context manager) before `tearDown`'s `tempfile.TemporaryDirectory.cleanup()` runs, to avoid `PermissionError: [WinError 32]` file-lock errors.
+* **Verification rule**: The entire test suite (**currently 58 tests**) must pass with `OK` before opening any PR or concluding a task.
 
 ---
 
@@ -226,19 +246,21 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 ### Completed Features (Verified & Tested)
 * ✅ **Corporate Announcements Client** ([`src/psx_data/announcements.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/announcements.py)): Single-page fetch, streaming generator pagination (`iter_announcements`), date/symbol filtering, `pdf_url` and `image_urls` property resolvers.
 * ✅ **Symbols & Sectors Directory** ([`src/psx_data/symbols.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/symbols.py)): Listed tickers, company names, market sectors, query substring search, and sector listing.
-* ✅ **Market & Price Data** ([`src/psx_data/market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py)): Historical EOD OHLCV daily bars (`get_eod`) and real-time Intraday ticks (`get_intraday`).
-* ✅ **Major Market Indices Dashboard** ([`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py)): Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`, etc.).
+* ✅ **Market & Price Data** ([`src/psx_data/market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py)): Historical EOD OHLCV daily bars (`get_eod`) and real-time Intraday ticks (`get_intraday`). Resilient `parse_eod` handles float volumes and variable-length timeseries arrays.
+* ✅ **Major Market Indices Dashboard** ([`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py)): Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`) via `/timeseries/int/{INDEX}` endpoint; computes open/high/low/close/volume from intraday ticks.
+* ✅ **Local SQLite Storage Layer** ([`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py)): Relational caching via `sqlite3` (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`). All connections explicitly closed for Windows compatibility.
 * ✅ **Storage & Export Utilities** ([`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py)): Binary notice downloader (`download_attachment`), CSV exporter (`export_to_csv`), and JSON exporter (`export_to_json`).
-* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, and `intraday` supporting `--json`, `--csv`, and `--download-dir`.
+* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, and `intraday` supporting `--json`, `--csv`, and `--download-dir`. A `db` subcommand is listed in module table but **not yet wired into CLI** — this is a known gap.
 * ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
 * ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
 
 ### Pending Roadmap Items
-* ⏳ **Local SQLite Storage Layer (`src/psx_data/db.py`)**: Local caching and relational storage for announcements, historical candles, and symbols.
+* ⏳ **`db` CLI subcommand**: Wire `psx-data db sync-symbols`, `psx-data db status`, `psx-data db sync-eod --symbol HUBC` into `src/psx_data/cli.py`.
 * ⏳ **Company Fundamentals & Profiles (`src/psx_data/companies.py`)**: Listed shares, market cap, executive info, and profile summaries from `dps.psx.com.pk/company/{SYMBOL}`.
 * ⏳ **Financial Statements / Ratio Analysis (`src/psx_data/financials.py`)**: Balance sheets, income statements, and dividend histories.
 * ⏳ **Frontend Web UI**: React + Vite application for real-time visualization and browsing.
 * ⏳ **Release `v0.2.0` Prep**: Updating `CHANGELOG.md`, `pyproject.toml`, and creating git release tags.
+
 
 ---
 
