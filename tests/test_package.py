@@ -25,6 +25,13 @@ class TestPackage(unittest.TestCase):
             get_sectors,
             get_symbols,
             get_tickers,
+            init_db,
+            query_announcements,
+            query_eod,
+            query_symbols,
+            save_announcements,
+            save_eod,
+            save_symbols,
         )
 
         self.assertIsNotNone(Announcement)
@@ -32,6 +39,13 @@ class TestPackage(unittest.TestCase):
         self.assertIsNotNone(OHLCV)
         self.assertIsNotNone(IntradayTick)
         self.assertIsNotNone(IndexSummary)
+        self.assertIsNotNone(init_db)
+        self.assertIsNotNone(save_symbols)
+        self.assertIsNotNone(query_symbols)
+        self.assertIsNotNone(save_announcements)
+        self.assertIsNotNone(query_announcements)
+        self.assertIsNotNone(save_eod)
+        self.assertIsNotNone(query_eod)
         self.assertIsNotNone(get_announcements)
         self.assertIsNotNone(get_symbols)
         self.assertIsNotNone(get_tickers)

@@ -73,9 +73,11 @@
 | **Announcements** | [`src/psx_data/announcements.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/announcements.py) | Scrapes `dps.psx.com.pk/announcements` via POST requests; parses table HTML with `_AnnouncementParser(HTMLParser)`; yields `Announcement` dataclasses with `pdf_url` and `image_urls` properties; provides `get_announcements` and `iter_announcements` generator. |
 | **Symbols** | [`src/psx_data/symbols.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/symbols.py) | Fetches `dps.psx.com.pk/symbols`; parses JSON into `Symbol` objects; provides `get_symbols`, `get_tickers`, and `get_sectors` with filtering. |
 | **Market Data** | [`src/psx_data/market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py) | Fetches time-series data: EOD historical candles from `/timeseries/eod/{SYMBOL}` into `OHLCV`, and real-time intraday ticks from `/timeseries/int/{SYMBOL}` into `IntradayTick`. |
+| **Indices** | [`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py) | Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`, etc.). |
+| **SQLite Storage** | [`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py) | Relational caching and persistence layer (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`). |
 | **Storage & Export** | [`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py) | Downloads PDF/image attachments (`download_attachment`); exports records to CSV (`export_to_csv`) and JSON (`export_to_json`). |
 | **Exceptions** | [`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py) | Custom exception hierarchy: `PSXError` (base), `PSXNetworkError`, `PSXParseError`. |
-| **CLI** | [`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py) | Entry point `main(argv)` supporting subcommands: `announcements`, `symbols`, `sectors`, `eod`, and `intraday`. |
+| **CLI** | [`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py) | Entry point `main(argv)` supporting subcommands: `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, and `db`. |
 
 ---
 
