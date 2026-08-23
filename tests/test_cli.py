@@ -240,5 +240,21 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn("Successfully cached 1 EOD candles for HUBC", mock_stdout.getvalue())
     
+    @patch("psx_data.cli.get_company_profile")
+    @patch("sys.stdout", new_callable=io.StringIO)
+    def test_cli_company_profile(self, mock_stdout, mock_get_profile):
+        from psx_data.companies import CompanyProfile
+        mock_get_profile.return_value = CompanyProfile(
+            symbol="HUBC",
+            name="The Hub Power Company",
+            ceo="Kamran Kamal",
+            market_cap=188000000.0,
+        )
+
+        code = main(["company", "--symbol", "HUBC"])
+        self.assertEqual(code, 0)
+        self.assertIn("HUBC", mock_stdout.getvalue())
+        self.assertIn("Kamran Kamal", mock_stdout.getvalue())
+    
 if __name__ == "__main__":
     unittest.main()

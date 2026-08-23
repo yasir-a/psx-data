@@ -32,6 +32,10 @@ class TestPackage(unittest.TestCase):
             save_announcements,
             save_eod,
             save_symbols,
+            CompanyProfile, 
+            get_company_profile, 
+            save_company_profile, 
+            query_company_profile
         )
 
         self.assertIsNotNone(Announcement)
@@ -56,6 +60,10 @@ class TestPackage(unittest.TestCase):
         self.assertIsNotNone(get_index)
         self.assertIsNotNone(download_attachment)
         self.assertIsNotNone(PSXError)
+        self.assertIsNotNone(CompanyProfile)
+        self.assertIsNotNone(get_company_profile)
+        self.assertIsNotNone(save_company_profile)
+        self.assertIsNotNone(query_company_profile)
 
 
 if __name__ == "__main__":

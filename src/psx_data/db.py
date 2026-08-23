@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from psx_data.announcements import Announcement
+from psx_data.companies import CompanyProfile
 from psx_data.market import OHLCV
 from psx_data.symbols import Symbol
 
@@ -57,6 +58,22 @@ def init_db(db_path: str | Path = DEFAULT_DB_PATH) -> Path:
                 close REAL NOT NULL,
                 volume INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (symbol, timestamp)
+            );
+
+            CREATE TABLE IF NOT EXISTS company_profiles (
+                symbol TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                sector TEXT NOT NULL DEFAULT '',
+                shares_listed INTEGER DEFAULT 0,
+                free_float INTEGER DEFAULT 0,
+                market_cap REAL DEFAULT 0.0,
+                ceo TEXT DEFAULT '',
+                chairperson TEXT DEFAULT '',
+                auditor TEXT DEFAULT '',
+                website TEXT DEFAULT '',
+                address TEXT DEFAULT '',
+                fiscal_year_end TEXT DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE INDEX IF NOT EXISTS idx_announcements_symbol ON announcements(symbol);
@@ -268,9 +285,99 @@ def get_db_stats(db_path: str | Path = DEFAULT_DB_PATH) -> dict[str, int]:
     try:
         cursor = conn.cursor()
         stats: dict[str, int] = {}
-        for table in ["symbols", "announcements", "eod_candles"]:
+        for table in ["symbols", "announcements", "eod_candles", "company_profiles"]:
             cursor.execute(f"SELECT COUNT(*) FROM {table}")
             stats[table] = cursor.fetchone()[0]
         return stats
+    finally:
+        conn.close()
+
+def save_company_profile(
+    profile: CompanyProfile,
+    db_path: str | Path = DEFAULT_DB_PATH,
+) -> int:
+    """Save or update a company profile in the database."""
+    init_db(db_path)
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO company_profiles (
+                symbol, name, sector, shares_listed, free_float, market_cap,
+                ceo, chairperson, auditor, website, address, fiscal_year_end, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(symbol) DO UPDATE SET
+                name=excluded.name,
+                sector=excluded.sector,
+                shares_listed=excluded.shares_listed,
+                free_float=excluded.free_float,
+                market_cap=excluded.market_cap,
+                ceo=excluded.ceo,
+                chairperson=excluded.chairperson,
+                auditor=excluded.auditor,
+                website=excluded.website,
+                address=excluded.address,
+                fiscal_year_end=excluded.fiscal_year_end,
+                updated_at=CURRENT_TIMESTAMP;
+            """,
+            (
+                profile.symbol.upper(),
+                profile.name,
+                profile.sector,
+                profile.shares_listed,
+                profile.free_float,
+                profile.market_cap,
+                profile.ceo,
+                profile.chairperson,
+                profile.auditor,
+                profile.website,
+                profile.address,
+                profile.fiscal_year_end,
+            ),
+        )
+        conn.commit()
+        return 1
+    finally:
+        conn.close()
+
+
+def query_company_profile(
+    symbol: str,
+    db_path: str | Path = DEFAULT_DB_PATH,
+) -> CompanyProfile | None:
+    """Query cached company profile from SQLite database."""
+    init_db(db_path)
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT symbol, name, sector, shares_listed, free_float, market_cap,
+                   ceo, chairperson, auditor, website, address, fiscal_year_end
+            FROM company_profiles
+            WHERE UPPER(symbol) = ?;
+            """,
+            (symbol.strip().upper(),),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        return CompanyProfile(
+            symbol=row["symbol"],
+            name=row["name"],
+            sector=row["sector"],
+            shares_listed=row["shares_listed"],
+            free_float=row["free_float"],
+            market_cap=row["market_cap"],
+            ceo=row["ceo"],
+            chairperson=row["chairperson"],
+            auditor=row["auditor"],
+            website=row["website"],
+            address=row["address"],
+            fiscal_year_end=row["fiscal_year_end"],
+        )
     finally:
         conn.close()

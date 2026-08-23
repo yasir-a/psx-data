@@ -3,13 +3,21 @@ from psx_data.announcements import (
     get_announcements,
     iter_announcements,
 )
+from psx_data.companies import (
+    CompanyProfile,
+    fetch_company_profile,
+    get_company_profile,
+    parse_company_profile,
+)
 from psx_data.db import (
     get_db_stats,
     init_db,
     query_announcements,
+    query_company_profile,
     query_eod,
     query_symbols,
     save_announcements,
+    save_company_profile,
     save_eod,
     save_symbols,
 )
@@ -86,4 +94,10 @@ __all__ = [
     "save_eod",
     "query_eod",
     "get_db_stats",
+    "CompanyProfile",
+    "fetch_company_profile",
+    "parse_company_profile",
+    "get_company_profile",
+    "save_company_profile",
+    "query_company_profile",
 ]
