@@ -14,20 +14,24 @@
   - [Listing All Tickers & Symbols](#listing-all-tickers--symbols)
   - [Filtering by Sector and Query](#filtering-by-sector-and-query)
   - [Listing Market Sectors](#listing-market-sectors)
-- [4. Market & Price Data (EOD & Intraday)](#4-market--price-data-eod--intraday)
+- [4. Major Market Indices](#4-major-market-indices)
+  - [Tracking Benchmark Indices](#tracking-benchmark-indices)
+  - [Fetching a Specific Index](#fetching-a-specific-index)
+- [5. Market & Price Data (EOD & Intraday)](#5-market--price-data-eod--intraday)
   - [End-of-Day (EOD) Historical OHLCV Candles](#end-of-day-eod-historical-ohlcv-candles)
   - [Intraday Price Ticks](#intraday-price-ticks)
-- [5. Storage & Export Utilities](#5-storage--export-utilities)
+- [6. Storage & Export Utilities](#6-storage--export-utilities)
   - [Downloading PDF / Image Attachments](#downloading-pdf--image-attachments)
   - [Exporting to CSV](#exporting-to-csv)
   - [Exporting to JSON](#exporting-to-json)
-- [6. Error Handling & Resilience](#6-error-handling--resilience)
-- [7. Command-Line Interface (CLI)](#7-command-line-interface-cli)
+- [7. Error Handling & Resilience](#7-error-handling--resilience)
+- [8. Command-Line Interface (CLI)](#8-command-line-interface-cli)
   - [Announcements Commands](#announcements-commands)
   - [Symbols & Sectors Commands](#symbols--sectors-commands)
+  - [Indices Commands](#indices-commands)
   - [Market Data Commands (EOD & Intraday)](#market-data-commands-eod--intraday)
   - [Installing and Testing Binary Command](#installing-and-testing-binary-command)
-- [8. Test Suite & Quality Assurance](#8-test-suite--quality-assurance)
+- [9. Test Suite & Quality Assurance](#9-test-suite--quality-assurance)
 
 ---
 
@@ -45,18 +49,18 @@ Data Collection (HTTP Clients & URL builders)
 Parsing (HTML streaming parser & JSON parsers)
        │
        ▼
-Domain Models (Announcement, Symbol, OHLCV, IntradayTick)
+Domain Models (Announcement, Symbol, IndexSummary, OHLCV, IntradayTick)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
-Query Pagination  Storage (download_attachment, export_to_csv, export_to_json)
+Query Pagination  Storage (download_attachment, export_to_csv, export_to_json, SQLite)
        │
        ▼
-Public API (get_announcements, get_symbols, get_eod, get_intraday, ...)
+Public API (get_announcements, get_symbols, get_indices, get_eod, get_intraday, ...)
        │
  ┌─────┼─────────────┐
  ▼     ▼             ▼
-Python CLI         Web UI (Future)
+Python CLI         React + Vite UI (Planned)
 ```
 
 ---
@@ -145,7 +149,31 @@ for sector in sectors:
 
 ---
 
-## 4. Market & Price Data (EOD & Intraday)
+## 4. Major Market Indices
+
+### Tracking Benchmark Indices
+Fetch live snapshot of all major PSX benchmark indices:
+
+```python
+from psx_data import get_indices
+
+indices = get_indices()
+for idx in indices:
+    print(f"{idx.index:<10} {idx.current:>10.2f} {idx.change:>+8.2f} ({idx.percent_change:>+6.2f}%)")
+```
+
+### Fetching a Specific Index
+```python
+from psx_data import get_index
+
+kse100 = get_index("KSE100")
+if kse100:
+    print(f"KSE-100: {kse100.current:,.2f} ({kse100.percent_change:+.2f}%) | Vol: {kse100.volume:,}")
+```
+
+---
+
+## 5. Market & Price Data (EOD & Intraday)
 
 ### End-of-Day (EOD) Historical OHLCV Candles
 Fetch historical daily prices, open, high, low, close, and volume for any stock or index:
@@ -157,9 +185,6 @@ from psx_data import get_eod
 candles = get_eod("HUBC", limit=30)
 for c in candles:
     print(f"{c.date_str} | Open: {c.open:.2f} | Close: {c.close:.2f} | Vol: {c.volume:,}")
-
-# Fetch KSE-100 index history
-kse100 = get_eod("KSE100", limit=10)
 ```
 
 ### Intraday Price Ticks
@@ -175,7 +200,7 @@ for t in ticks:
 
 ---
 
-## 5. Storage & Export Utilities
+## 6. Storage & Export Utilities
 
 ### Downloading PDF / Image Attachments
 Download official notice attachments directly to a local directory:
@@ -212,7 +237,7 @@ export_to_json(announcements, "sys_announcements.json")
 
 ---
 
-## 6. Error Handling & Resilience
+## 7. Error Handling & Resilience
 
 `psx-data` includes a built-in exception hierarchy and configurable network timeouts:
 
@@ -230,7 +255,7 @@ except PSXError as exc:
 
 ---
 
-## 7. Command-Line Interface (CLI)
+## 8. Command-Line Interface (CLI)
 
 ### Announcements Commands
 
@@ -278,6 +303,22 @@ psx-data symbols --csv all_symbols.csv
 psx-data symbols --query "Bank" --json
 ```
 
+### Indices Commands
+
+```bash
+# 1. View all major PSX benchmark indices (KSE100, KSE30, KMI30, ALLSHR, etc.)
+psx-data indices
+# Or via module:
+python -m psx_data.cli indices
+
+# 2. Filter for a specific index
+psx-data indices --symbol KSE100
+
+# 3. Export indices to CSV or JSON
+psx-data indices --csv psx_indices.csv
+psx-data indices --json
+```
+
 ### Market Data Commands (EOD & Intraday)
 
 ```bash
@@ -305,6 +346,7 @@ pip install -e .
 
 # Run directly from anywhere in your environment
 psx-data --help
+psx-data indices
 psx-data sectors
 psx-data symbols --query "OGDC"
 psx-data eod --symbol HUBC --limit 5
@@ -314,8 +356,8 @@ psx-data announcements --symbol HUBC --count 5
 
 ---
 
-## 8. Test Suite & Quality Assurance
+## 9. Test Suite & Quality Assurance
 
-* **45 unit tests** using standard library `unittest`.
+* **54 unit tests** using standard library `unittest`.
 * Tested against offline PSX HTML and JSON fixtures as well as mock network layers.
 * Automated CI pipeline on GitHub Actions.

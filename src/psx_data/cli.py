@@ -10,6 +10,8 @@ from pathlib import Path
 from psx_data import (
     get_announcements,
     get_eod,
+    get_index,
+    get_indices,
     get_intraday,
     get_sectors,
     get_symbols,
@@ -170,6 +172,30 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default="",
         help="Save ticks to a CSV file path",
+    )
+
+    # Subcommand: indices
+    idx_parser = subparsers.add_parser(
+        "indices",
+        help="Fetch major PSX benchmark indices (KSE100, KSE30, KMI30, ALLSHR, etc.)",
+    )
+    idx_parser.add_argument(
+        "--symbol",
+        "-s",
+        type=str,
+        default="",
+        help="Filter for a specific index symbol (e.g. KSE100)",
+    )
+    idx_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output in JSON format",
+    )
+    idx_parser.add_argument(
+        "--csv",
+        type=str,
+        default="",
+        help="Save indices to a CSV file path",
     )
 
     return parser
@@ -354,6 +380,61 @@ def handle_intraday(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_indices(args: argparse.Namespace) -> int:
+    try:
+        if args.symbol:
+            idx = get_index(args.symbol)
+            indices = [idx] if idx else []
+        else:
+            indices = get_indices()
+    except PSXError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if not indices:
+        msg = f"No index found for symbol '{args.symbol}'." if args.symbol else "No indices found."
+        print(msg)
+        return 0
+
+    if args.csv:
+        csv_path = Path(args.csv)
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with csv_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "index",
+                    "name",
+                    "current",
+                    "change",
+                    "percent_change",
+                    "high",
+                    "low",
+                    "volume",
+                    "status",
+                ],
+            )
+            writer.writeheader()
+            for item in indices:
+                writer.writerow(asdict(item))
+        print(f"Saved {len(indices)} indices to {csv_path}")
+        return 0
+
+    if args.json:
+        print(json.dumps([asdict(i) for i in indices], indent=2))
+        return 0
+
+    print(f"{'Index':<10} {'Current':>12} {'Change':>10} {'% Change':>10} {'High':>12} {'Low':>12} {'Volume':>14}")
+    print("-" * 84)
+    for i in indices:
+        print(
+            f"{i.index:<10} {i.current:>12.2f} {i.change:>+10.2f} {i.percent_change:>+9.2f}% "
+            f"{i.high:>12.2f} {i.low:>12.2f} {i.volume:>14,d}"
+        )
+
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -368,6 +449,8 @@ def main(argv: list[str] | None = None) -> int:
         return handle_eod(args)
     elif args.command == "intraday":
         return handle_intraday(args)
+    elif args.command == "indices":
+        return handle_indices(args)
 
     return 0
 
