@@ -3,12 +3,15 @@
 import sqlite3
 from pathlib import Path
 
+from psx_data.financials import DividendRecord, FinancialRatio, FinancialSummary
 from psx_data.announcements import Announcement
 from psx_data.companies import CompanyProfile
 from psx_data.market import OHLCV
 from psx_data.symbols import Symbol
 
+
 DEFAULT_DB_PATH = Path("psx_data.db")
+
 
 
 def get_connection(db_path: str | Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
@@ -74,6 +77,34 @@ def init_db(db_path: str | Path = DEFAULT_DB_PATH) -> Path:
                 address TEXT DEFAULT '',
                 fiscal_year_end TEXT DEFAULT '',
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS financial_ratios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                period TEXT NOT NULL,
+                eps REAL DEFAULT 0.0,
+                pe_ratio REAL DEFAULT 0.0,
+                book_value REAL DEFAULT 0.0,
+                price_to_book REAL DEFAULT 0.0,
+                dividend_yield REAL DEFAULT 0.0,
+                roe REAL DEFAULT 0.0,
+                roa REAL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(symbol, period)
+            );
+
+            CREATE TABLE IF NOT EXISTS dividends (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                announcement_date TEXT NOT NULL,
+                financial_year_end TEXT NOT NULL DEFAULT '',
+                dividend_percent REAL DEFAULT 0.0,
+                dividend_amount REAL DEFAULT 0.0,
+                bonus_percent REAL DEFAULT 0.0,
+                right_percent REAL DEFAULT 0.0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(symbol, announcement_date, financial_year_end, dividend_amount)
             );
 
             CREATE INDEX IF NOT EXISTS idx_announcements_symbol ON announcements(symbol);
@@ -285,7 +316,7 @@ def get_db_stats(db_path: str | Path = DEFAULT_DB_PATH) -> dict[str, int]:
     try:
         cursor = conn.cursor()
         stats: dict[str, int] = {}
-        for table in ["symbols", "announcements", "eod_candles", "company_profiles"]:
+        for table in ["symbols", "announcements", "eod_candles", "company_profiles", "financial_ratios", "dividends"]:
             cursor.execute(f"SELECT COUNT(*) FROM {table}")
             stats[table] = cursor.fetchone()[0]
         return stats
@@ -379,5 +410,133 @@ def query_company_profile(
             address=row["address"],
             fiscal_year_end=row["fiscal_year_end"],
         )
+    finally:
+        conn.close()
+
+def save_financials(
+    financials: FinancialSummary,
+    db_path: str | Path = DEFAULT_DB_PATH,
+) -> int:
+    """Save financial ratios and dividend records to SQLite database."""
+    init_db(db_path)
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.cursor()
+        total_saved = 0
+
+        for r in financials.ratios:
+            cursor.execute(
+                """
+                INSERT INTO financial_ratios (
+                    symbol, period, eps, pe_ratio, book_value, price_to_book, dividend_yield, roe, roa
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(symbol, period) DO UPDATE SET
+                    eps=excluded.eps,
+                    pe_ratio=excluded.pe_ratio,
+                    book_value=excluded.book_value,
+                    dividend_yield=excluded.dividend_yield,
+                    roe=excluded.roe;
+                """,
+                (
+                    r.symbol.upper(),
+                    r.period,
+                    r.eps,
+                    r.pe_ratio,
+                    r.book_value,
+                    r.price_to_book,
+                    r.dividend_yield,
+                    r.roe,
+                    r.roa,
+                ),
+            )
+            total_saved += 1
+
+        for d in financials.dividends:
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO dividends (
+                    symbol, announcement_date, financial_year_end, dividend_percent,
+                    dividend_amount, bonus_percent, right_percent
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    d.symbol.upper(),
+                    d.announcement_date,
+                    d.financial_year_end,
+                    d.dividend_percent,
+                    d.dividend_amount,
+                    d.bonus_percent,
+                    d.right_percent,
+                ),
+            )
+            total_saved += 1
+
+        conn.commit()
+        return total_saved
+    finally:
+        conn.close()
+
+
+def query_financials(
+    symbol: str,
+    db_path: str | Path = DEFAULT_DB_PATH,
+) -> FinancialSummary:
+    """Query cached financial ratios and dividends for a symbol from database."""
+    init_db(db_path)
+    conn = get_connection(db_path)
+    try:
+        cursor = conn.cursor()
+        sym = symbol.strip().upper()
+
+        cursor.execute(
+            """
+            SELECT symbol, period, eps, pe_ratio, book_value, price_to_book, dividend_yield, roe, roa
+            FROM financial_ratios
+            WHERE UPPER(symbol) = ?
+            ORDER BY id ASC;
+            """,
+            (sym,),
+        )
+        ratios = [
+            FinancialRatio(
+                symbol=row["symbol"],
+                period=row["period"],
+                eps=row["eps"],
+                pe_ratio=row["pe_ratio"],
+                book_value=row["book_value"],
+                price_to_book=row["price_to_book"],
+                dividend_yield=row["dividend_yield"],
+                roe=row["roe"],
+                roa=row["roa"],
+            )
+            for row in cursor.fetchall()
+        ]
+
+        cursor.execute(
+            """
+            SELECT symbol, announcement_date, financial_year_end, dividend_percent,
+                   dividend_amount, bonus_percent, right_percent
+            FROM dividends
+            WHERE UPPER(symbol) = ?
+            ORDER BY announcement_date DESC;
+            """,
+            (sym,),
+        )
+        dividends = [
+            DividendRecord(
+                symbol=row["symbol"],
+                announcement_date=row["announcement_date"],
+                financial_year_end=row["financial_year_end"],
+                dividend_percent=row["dividend_percent"],
+                dividend_amount=row["dividend_amount"],
+                bonus_percent=row["bonus_percent"],
+                right_percent=row["right_percent"],
+            )
+            for row in cursor.fetchall()
+        ]
+
+        return FinancialSummary(symbol=sym, ratios=ratios, dividends=dividends)
     finally:
         conn.close()

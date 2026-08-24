@@ -77,10 +77,12 @@
 | **Market Data** | [`src/psx_data/market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py) | Fetches time-series data: EOD historical candles from `/timeseries/eod/{SYMBOL}` into `OHLCV`, and real-time intraday ticks from `/timeseries/int/{SYMBOL}` into `IntradayTick`. |
 | **Indices** | [`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py) | Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`, etc.). |
 | **Company Profiles** | [`src/psx_data/companies.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/companies.py) | Scrapes listed company profiles, market cap, shares listed, free float, and management info (`get_company_profile`). |
-| **SQLite Storage** | [`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py) | Relational caching and persistence layer (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`, `save_company_profile`, `query_company_profile`, `get_db_stats`). |
+| **Financials & Ratios** | [`src/psx_data/financials.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/financials.py) | Scrapes and parses financial ratios (EPS, P/E, ROE, BV) and dividend payout history (`get_financials`). |
+| **SQLite Storage** | [`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py) | Relational caching and persistence layer (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`, `save_company_profile`, `query_company_profile`, `save_financials`, `query_financials`, `get_db_stats`). |
+| **Local REST API** | [`src/psx_data/server.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/server.py) | Stdlib HTTP JSON API server (`run_server`) bridge for UI dashboard. |
 | **Storage & Export** | [`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py) | Downloads PDF/image attachments (`download_attachment`); exports records to CSV (`export_to_csv`) and JSON (`export_to_json`). |
 | **Exceptions** | [`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py) | Custom exception hierarchy: `PSXError` (base), `PSXNetworkError`, `PSXParseError`. |
-| **CLI** | [`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py) | Entry point `main(argv)` supporting subcommands: `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, `company`, and `db`. |
+| **CLI** | [`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py) | Entry point `main(argv)` supporting subcommands: `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, `company`, `financials`, `db`, and `serve`. |
 
 ---
 
@@ -105,8 +107,10 @@ psx-data/
 │       ├── companies.py              # Company profiles and fundamentals parser
 │       ├── db.py                     # SQLite local persistence and caching layer
 │       ├── exceptions.py             # Custom exceptions hierarchy
+│       ├── financials.py             # Financial statements, ratios & dividend history
 │       ├── indices.py                # Major market indices dashboard (KSE100, KSE30, KMI30, ALLSHR)
 │       ├── market.py                 # EOD historical OHLCV & Intraday ticks
+│       ├── server.py                 # Stdlib HTTP JSON API server bridge
 │       ├── storage.py                # Attachment downloader & CSV/JSON exporters
 │       └── symbols.py                # Listed companies & market sectors directory
 ├── tests/
@@ -114,6 +118,7 @@ psx-data/
 │   │   ├── announcements_hubc.html   # Offline HTML fixture for announcement parser
 │   │   ├── company_hubc.html         # Offline HTML fixture for company profile parser
 │   │   ├── eod_hubc.json             # Offline JSON fixture for EOD candles
+│   │   ├── financials_hubc.html      # Offline HTML fixture for financials parser
 │   │   ├── indices.json              # Offline JSON fixture for indices
 │   │   ├── intraday_hubc.json        # Offline JSON fixture for intraday ticks
 │   │   └── symbols.json              # Offline JSON fixture for listed symbols
@@ -121,11 +126,13 @@ psx-data/
 │   ├── test_cli.py                   # CLI subcommands & argument parsing tests
 │   ├── test_companies.py             # Company profiles unit tests
 │   ├── test_db.py                    # SQLite storage unit tests (uses temp file, not mocks)
+│   ├── test_financials.py            # Financials & ratios unit tests
 │   ├── test_indices.py               # Indices parser/fetcher tests
 │   ├── test_market.py                # Market EOD & Intraday parser/fetcher tests
 │   ├── test_package.py               # Package & public API import verification tests
 │   ├── test_storage.py               # File downloads & CSV/JSON export tests
 │   └── test_symbols.py               # Symbols, tickers, and sectors tests
+├── ui/                               # React 19 + Vite + TypeScript frontend dashboard
 ├── .gitignore
 ├── AGENTS.md                         # This file (AI developer handoff and persistent context)
 ├── CHANGELOG.md                      # Release changelog following SemVer
@@ -142,7 +149,7 @@ psx-data/
 ## 4. Technology Stack & Environment
 
 * **Language**: Python 3.11+ (typed, modern dataclasses, union syntax `str | None`).
-* **Runtime Dependencies**: **None**. Zero external runtime dependencies. Only Python Standard Library (`urllib`, `html.parser`, `dataclasses`, `datetime`, `json`, `csv`, `sqlite3`, `pathlib`, `argparse`, `sys`).
+* **Runtime Dependencies**: **None**. Zero external runtime dependencies. Only Python Standard Library (`urllib`, `html.parser`, `dataclasses`, `datetime`, `json`, `csv`, `sqlite3`, `http.server`, `pathlib`, `argparse`, `sys`).
 * **Build System**: `setuptools>=68` configured via [`pyproject.toml`](file:///c:/Users/yasir/projects/psx-data/pyproject.toml) using a `src/` layout.
 * **CLI Entry Point**: `psx-data = "psx_data.cli:main"` registered in `[project.scripts]`.
 * **Virtual Environment**: `.venv/` at the project root. Always activate before running tests or CLI commands:
@@ -232,6 +239,7 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
   ```powershell
   .\.venv\Scripts\python.exe -m unittest tests/test_announcements.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_companies.py -v
+  .\.venv\Scripts\python.exe -m unittest tests/test_financials.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_market.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_symbols.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_storage.py -v
@@ -240,7 +248,7 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
   .\.venv\Scripts\python.exe -m unittest tests/test_db.py -v
   ```
 * **Windows SQLite note**: All `sqlite3` connections opened in tests must call `.close()` explicitly (not just rely on context manager) before `tearDown`'s `tempfile.TemporaryDirectory.cleanup()` runs, to avoid `PermissionError: [WinError 32]` file-lock errors.
-* **Verification rule**: The entire test suite (**currently 69 tests**) must pass with `OK` before opening any PR or concluding a task.
+* **Verification rule**: The entire test suite (**currently 77 tests**) must pass with `OK` before opening any PR or concluding a task.
 
 ---
 
@@ -252,9 +260,12 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 * ✅ **Market & Price Data** ([`src/psx_data/market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py)): Historical EOD OHLCV daily bars (`get_eod`) and real-time Intraday ticks (`get_intraday`). Resilient `parse_eod` handles float volumes and variable-length timeseries arrays.
 * ✅ **Major Market Indices Dashboard** ([`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py)): Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`) via `/timeseries/int/{INDEX}` endpoint; computes open/high/low/close/volume from intraday ticks.
 * ✅ **Company Fundamentals & Profiles** ([`src/psx_data/companies.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/companies.py)): Listed shares, market cap, executive leadership (CEO, Chairman, Auditor), and corporate profile metadata (`get_company_profile`).
-* ✅ **Local SQLite Storage Layer** ([`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py)): Relational caching via `sqlite3` (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`, `save_company_profile`, `query_company_profile`, `get_db_stats`).
-* ✅ **Storage & Export Utilities** ([`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py)): Binary notice downloader (`download_attachment`), CSV exporter (`export_to_csv`), and JSON exporter (`export_to_json`).
+* ✅ **Financial Statements, Ratios & Dividends** ([`src/psx_data/financials.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/financials.py)): Scrapes and parses annual & quarterly financial metrics (EPS, Gross Profit Margin %, Net Profit Margin %, EPS Growth %, PEG) and dividend payout history (`get_financials`).
+* ✅ **Local SQLite Storage Layer** ([`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py)): Relational caching via `sqlite3` (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`, `save_company_profile`, `query_company_profile`, `save_financials`, `query_financials`, `get_db_stats`).
 * ✅ **Local REST API Server** ([`src/psx_data/server.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/server.py)): Stdlib HTTP server serving JSON endpoints to the UI dashboard.
+* ✅ **React + Vite Frontend Web UI** (`ui/`): Modern dashboard in React 19 + TypeScript + Tailwind CSS with live indices ticker, symbol explorer, price charts, company profile cards, and SQLite cache manager.
+* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, `company`, `financials`, `db`, and `serve`.
+* ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
 * ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
 
 ### Pending Roadmap Items

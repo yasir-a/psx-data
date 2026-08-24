@@ -22,22 +22,29 @@
   - [Intraday Price Ticks](#intraday-price-ticks)
 - [6. Company Fundamentals & Profiles](#6-company-fundamentals--profiles)
   - [Fetching Company Metadata & Profiles](#fetching-company-metadata--profiles)
-- [7. SQLite Local Storage & Cache](#7-sqlite-local-storage--cache)
+- [7. Financial Statements, Ratios & Dividends](#7-financial-statements-ratios--dividends)
+  - [Fetching Financial Ratios & Payout History](#fetching-financial-ratios--payout-history)
+- [8. SQLite Local Storage & Cache](#8-sqlite-local-storage--cache)
   - [Database Operations in Python](#database-operations-in-python)
-- [8. Storage & Export Utilities](#8-storage--export-utilities)
+- [9. React + Vite Frontend Web Dashboard](#9-react--vite-frontend-web-dashboard)
+  - [Starting the Local API Bridge Server](#starting-the-local-api-bridge-server)
+  - [Launching the Frontend UI](#launching-the-frontend-ui)
+- [10. Storage & Export Utilities](#10-storage--export-utilities)
   - [Downloading PDF / Image Attachments](#downloading-pdf--image-attachments)
   - [Exporting to CSV](#exporting-to-csv)
   - [Exporting to JSON](#exporting-to-json)
-- [9. Error Handling & Resilience](#9-error-handling--resilience)
-- [10. Command-Line Interface (CLI)](#10-command-line-interface-cli)
+- [11. Error Handling & Resilience](#11-error-handling--resilience)
+- [12. Command-Line Interface (CLI)](#12-command-line-interface-cli)
   - [Announcements Commands](#announcements-commands)
   - [Symbols & Sectors Commands](#symbols--sectors-commands)
   - [Indices Commands](#indices-commands)
   - [Market Data Commands (EOD & Intraday)](#market-data-commands-eod--intraday)
   - [Company Profile Commands](#company-profile-commands)
+  - [Financials & Dividends Commands](#financials--dividends-commands)
   - [Database Commands (SQLite Cache)](#database-commands-sqlite-cache)
+  - [API Server Command](#api-server-command)
   - [Installing and Testing Binary Command](#installing-and-testing-binary-command)
-- [11. Test Suite & Quality Assurance](#11-test-suite--quality-assurance)
+- [13. Test Suite & Quality Assurance](#13-test-suite--quality-assurance)
 
 ---
 
@@ -230,7 +237,29 @@ if profile:
 
 ---
 
-## 7. SQLite Local Storage & Cache
+## 7. Financial Statements, Ratios & Dividends
+
+Extract historical annual and quarterly financial metrics (EPS, Gross Profit Margin %, Net Profit Margin %, EPS Growth %, PEG) and dividend/payout history (cash dividend %, amount, bonus %, right shares %).
+
+### Fetching Financial Ratios & Payout History
+
+```python
+from psx_data import get_financials
+
+financials = get_financials("HUBC")
+
+print(f"=== Financials for {financials.symbol} ===")
+for r in financials.ratios:
+    print(f"[{r.period}] EPS: {r.eps:.2f} | Gross: {r.gross_margin:.1f}% | Net: {r.net_margin:.1f}% | Growth: {r.eps_growth:+.1f}% | PEG: {r.peg_ratio:.2f}")
+
+print(f"\n=== Dividend History ===")
+for d in financials.dividends:
+    print(f"[{d.announcement_date}] Div: {d.dividend_percent:.1f}% (PKR {d.dividend_amount:.2f}) | Bonus: {d.bonus_percent:.1f}%")
+```
+
+---
+
+## 8. SQLite Local Storage & Cache
 
 `psx-data` includes a built-in relational persistence and caching layer based on Python's standard `sqlite3` library.
 
@@ -427,6 +456,22 @@ psx-data company --symbol HUBC --json
 psx-data company --symbol HUBC --save
 ```
 
+### Financials & Dividends Commands
+
+```bash
+# 1. Inspect key financial ratios and dividend payout history
+psx-data financials --symbol HUBC
+psx-data financials --symbol SYS
+# Or via module:
+python -m psx_data.cli financials --symbol HUBC
+
+# 2. Output in structured JSON format
+psx-data financials --symbol HUBC --json
+
+# 3. Cache financial ratios and dividend history to SQLite
+psx-data financials --symbol HUBC --save
+```
+
 ### Database Commands (SQLite Cache)
 
 ```bash
@@ -446,6 +491,15 @@ psx-data db sync-eod --symbol HUBC --limit 50
 psx-data db sync-eod --symbol SYS --limit 100
 ```
 
+### API Server Command
+
+```bash
+# Start backend API server for the React web UI
+psx-data serve --host 127.0.0.1 --port 8000
+# Or via module:
+python -m psx_data.cli serve --port 8000
+```
+
 ### Installing and Testing Binary Command
 To install the package locally in editable mode and run the `psx-data` binary directly from anywhere:
 
@@ -455,6 +509,7 @@ pip install -e .
 
 # Run directly from anywhere in your environment
 psx-data --help
+psx-data financials --symbol HUBC
 psx-data company --symbol HUBC
 psx-data db status
 psx-data db sync-symbols
@@ -468,8 +523,8 @@ psx-data announcements --symbol HUBC --count 5
 
 ---
 
-## 11. Test Suite & Quality Assurance
+## 13. Test Suite & Quality Assurance
 
-* **69 unit tests** using standard library `unittest`.
+* **77 unit tests** using standard library `unittest`.
 * Tested against offline PSX HTML and JSON fixtures as well as mock network layers.
 * Automated CI pipeline on GitHub Actions.
