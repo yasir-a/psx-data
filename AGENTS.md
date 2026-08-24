@@ -193,55 +193,38 @@ psx-data/
 
 ## 7. Strict Git & Branching Workflow
 
-Every feature, fix, or refactor must follow the 22-step workflow established in `CONTRIBUTING.md`:
-
-```text
-1. Never develop directly on main.
+> [!IMPORTANT]
+Every feature, fix, docs update, or refactor must follow the standard workflow:
+1. Never develop or push directly to main.
 2. Start from an up-to-date main:
-     git switch main
      git pull origin main
 3. Create a dedicated branch:
-     git switch -c feature/<description>  (or fix/, test/, docs/, refactor/)
-4. Test-Driven Development (TDD):
-     Write/update tests -> Run tests (expect failure) -> Implement code -> Run full test suite.
+     git switch -c docs/<description>  (or feature/, fix/, test/, release/, refactor/)
+4. Make changes and verify test suite:
+     .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 5. Verify working tree before staging:
      git status
-     git diff
-     git diff --check
-6. Stage specific files only (never blindly git add .):
-     git add src/psx_data/... tests/... docs/...
+     git add ...
 7. Commit using conventional format:
+     docs: <description>
      feat: <description>
      fix: <description>
-     docs: <description>
-     test: <description>
-8. Push feature branch:
-     git push -u origin feature/<description>
-9. Open Pull Request to main using .github/PULL_REQUEST_TEMPLATE.md.
-10. Ensure GitHub Actions CI passes.
-11. Merge PR on GitHub.
-12. Sync and clean up local main:
+8. Push dedicated branch:
+10. Ensure GitHub Actions CI passes and merge PR on GitHub.
      git switch main
      git pull origin main
-     git branch -d feature/<description>
-     git push origin --delete feature/<description>
+     git branch -d <branch-name>
+     git push origin --delete <branch-name>
 ```
 
 ---
 
 ## 8. Testing Instructions
 
-* **Run complete test suite** (activate venv first):
-  ```powershell
-  .\.venv\Scripts\python.exe -m unittest discover -s tests -v
-  ```
-* **Run specific test file**:
   ```powershell
   .\.venv\Scripts\python.exe -m unittest tests/test_announcements.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_companies.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_financials.py -v
-  .\.venv\Scripts\python.exe -m unittest tests/test_market.py -v
-  .\.venv\Scripts\python.exe -m unittest tests/test_symbols.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_storage.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_cli.py -v
   .\.venv\Scripts\python.exe -m unittest tests/test_indices.py -v
@@ -267,7 +250,14 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 * ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, `company`, `financials`, `db`, and `serve`.
 * ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
 * ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
-* ✅ **Release `v0.2.0`**: Version bump in `pyproject.toml`, changelog updated in `CHANGELOG.md`, all 78 unit tests passing.
+* ✅ **Release `v0.2.0`**: Version bump in `pyproject.toml`, changelog updated in `CHANGELOG.md`, all 78 unit tests passing, tag `v0.2.0` pushed.
+  * **Summary of `v0.2.0` Deliverables**:
+    1. **React 19 + Vite Frontend Dashboard (`ui/`)**: Modern dark-mode web dashboard with real-time indices ticker, symbols directory, historical candlestick charts, company profile governance cards, and SQLite database cache manager.
+    2. **Stdlib REST API Server (`src/psx_data/server.py`)**: Lightweight zero-dependency HTTP server bridge (`psx-data serve --port 8000`).
+    3. **Company Fundamentals & Profiles (`src/psx_data/companies.py`)**: Executive leadership (CEO, Chairperson, Auditor), market cap, shares listed, and free float parser (`psx-data company --symbol HUBC`).
+    4. **Financial Statements, Ratios & Dividends (`src/psx_data/financials.py`)**: Annual/quarterly EPS, Gross/Net margins %, EPS Growth %, PEG, and dividend payout history (`psx-data financials --symbol HUBC`).
+    5. **Local SQLite Persistence Layer (`src/psx_data/db.py`)**: Relational cache and database management CLI (`psx-data db init`, `psx-data db status`, `psx-data db sync-symbols`, `psx-data db sync-eod`).
+    6. **Comprehensive Test Suite & Docs**: 78 offline unit tests, updated `docs/FEATURES.md`, and `CHANGELOG.md`.
 
 ### Future Roadmap Items
 * ⏳ **Real-Time WebSocket Price Streaming**: Live bid/ask and tick streaming integration.
@@ -280,8 +270,9 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 When taking over tasks on this repository, future AI agents must adhere to these directives:
 
 1. **Read `AGENTS.md` and `docs/FEATURES.md` first**: Always verify existing patterns and architecture before generating code.
-2. **Act as a Guide**: Do not execute modifying shell commands or modify source files directly unless specifically authorized by the user. Provide exact file paths, line numbers, code snippets, diffs, and verification commands.
+2. **File Edit Permission Rules**: Agents may ONLY directly edit markdown documentation files (`*.md`). For all other files (`.py`, `.ts`, `.json`, etc.), agents MUST provide exact file paths, line numbers, and code blocks for the human developer to add/modify.
 3. **Maintain `docs/FEATURES.md` and `AGENTS.md`**: When adding a new feature module, update `docs/FEATURES.md` with usage examples and update `AGENTS.md` when architectural decisions or component statuses change.
-4. **Follow TDD**: Write tests with offline fixtures in `tests/` first, ensure expected failure, implement the feature, and ensure all unit tests pass before handing off.
-5. **No Hallucinated Endpoints**: Base all network integrations on verified PSX Data Portal (`dps.psx.com.pk`) endpoints.
+4. **Release Tagging Protocol**: Whenever preparing and creating a Git release tag, always compile and record a complete **Summary of Deliverables** in `AGENTS.md` under the completed release milestone.
+5. **Follow TDD**: Write tests with offline fixtures in `tests/` first, ensure expected failure, implement the feature, and ensure all unit tests pass before handing off.
+6. **No Hallucinated Endpoints**: Base all network integrations on verified PSX Data Portal (`dps.psx.com.pk`) endpoints.
 
