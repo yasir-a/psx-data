@@ -35,7 +35,14 @@ class TestPackage(unittest.TestCase):
             CompanyProfile, 
             get_company_profile, 
             save_company_profile, 
-            query_company_profile
+            query_company_profile,
+            DividendRecord,
+            FinancialRatio,
+            FinancialSummary,
+            get_financials,
+            save_financials,
+            query_financials,
+            
         )
 
         self.assertIsNotNone(Announcement)
@@ -64,6 +71,12 @@ class TestPackage(unittest.TestCase):
         self.assertIsNotNone(get_company_profile)
         self.assertIsNotNone(save_company_profile)
         self.assertIsNotNone(query_company_profile)
+        self.assertIsNotNone(DividendRecord)
+        self.assertIsNotNone(FinancialRatio)
+        self.assertIsNotNone(FinancialSummary)
+        self.assertIsNotNone(get_financials)
+        self.assertIsNotNone(save_financials)
+        self.assertIsNotNone(query_financials)
 
 
 if __name__ == "__main__":

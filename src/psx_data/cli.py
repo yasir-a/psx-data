@@ -7,24 +7,24 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from psx_data import (
-    get_announcements,
-    get_company_profile,
+from psx_data.announcements import get_announcements, iter_announcements
+from psx_data.companies import get_company_profile
+from psx_data.db import (
+    DEFAULT_DB_PATH,
     get_db_stats,
-    get_eod,
-    get_index,
-    get_indices,
-    get_intraday,
-    get_sectors,
-    get_symbols,
     init_db,
     save_company_profile,
     save_eod,
+    save_financials,
     save_symbols,
 )
-from psx_data.db import DEFAULT_DB_PATH
 from psx_data.exceptions import PSXError
-from psx_data.storage import download_attachment, export_to_csv
+from psx_data.financials import get_financials
+from psx_data.indices import get_index, get_indices
+from psx_data.market import get_eod, get_intraday
+from psx_data.server import run_server
+from psx_data.storage import download_attachment, export_to_csv, export_to_json
+from psx_data.symbols import get_sectors, get_symbols
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -289,6 +289,29 @@ def build_parser() -> argparse.ArgumentParser:
         "--save",
         action="store_true",
         help="Cache profile into local SQLite database",
+    )
+
+        # Subcommand: financials
+    fin_parser = subparsers.add_parser(
+        "financials",
+        help="Fetch key financial ratios, EPS, P/E, and dividend payout history",
+    )
+    fin_parser.add_argument(
+        "--symbol",
+        "-s",
+        type=str,
+        required=True,
+        help="Stock ticker symbol (e.g. HUBC, SYS, OGDC)",
+    )
+    fin_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output results in JSON format",
+    )
+    fin_parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Save financials into local SQLite database",
     )
 
     return parser
@@ -611,6 +634,55 @@ def handle_company(args: argparse.Namespace) -> int:
 
     return 0
 
+def handle_financials(args: argparse.Namespace) -> int:
+    try:
+        financials = get_financials(args.symbol)
+    except PSXError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if not financials.ratios and not financials.dividends:
+        print(f"No financials or dividend records found for '{args.symbol}'.")
+        return 0
+
+    if args.save:
+        count = save_financials(financials)
+        print(f"Cached {count} financial records for {financials.symbol} to SQLite database.")
+
+    if args.json:
+        data = {
+            "symbol": financials.symbol,
+            "ratios": [asdict(r) for r in financials.ratios],
+            "dividends": [asdict(d) for d in financials.dividends],
+        }
+        print(json.dumps(data, indent=2))
+        return 0
+
+    if financials.ratios:
+        print(f"=== Financial Ratios & Margins: {financials.symbol} ===")
+        print(f"{'Period':<12} {'EPS (PKR)':>12} {'Gross Margin':>15} {'Net Margin':>15} {'EPS Growth':>15} {'PEG':>10}")
+        print("-" * 83)
+        for r in financials.ratios:
+            gross_str = f"{r.gross_margin:.2f}%" if r.gross_margin else "—"
+            net_str = f"{r.net_margin:.2f}%" if r.net_margin else "—"
+            growth_str = f"{r.eps_growth:+.2f}%" if r.eps_growth else "—"
+            peg_str = f"{r.peg_ratio:.2f}" if r.peg_ratio else "—"
+            print(
+                f"{r.period:<12} {r.eps:>12.2f} {gross_str:>15} {net_str:>15} {growth_str:>15} {peg_str:>10}"
+            )
+        print()
+
+    if financials.dividends:
+        print(f"=== Dividend & Payout History: {financials.symbol} ===")
+        print(f"{'Date':<14} {'Year End':<14} {'Div %':>8} {'Amount (PKR)':>14} {'Bonus %':>10} {'Right %':>10}")
+        print("-" * 74)
+        for d in financials.dividends:
+            print(
+                f"{d.announcement_date:<14} {d.financial_year_end:<14} {d.dividend_percent:>7.1f}% "
+                f"{d.dividend_amount:>14.2f} {d.bonus_percent:>9.1f}% {d.right_percent:>9.1f}%"
+            )
+
+    return 0
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
@@ -632,6 +704,8 @@ def main(argv: list[str] | None = None) -> int:
         return handle_db(args)
     elif args.command == "company":
         return handle_company(args)
+    elif args.command == "financials":
+        return handle_financials(args)
 
     return 0
 

@@ -255,6 +255,22 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("HUBC", mock_stdout.getvalue())
         self.assertIn("Kamran Kamal", mock_stdout.getvalue())
+
+    @patch("psx_data.cli.get_financials")
+    @patch("sys.stdout", new_callable=io.StringIO)
+    def test_cli_financials(self, mock_stdout, mock_get_fin):
+        from psx_data.financials import DividendRecord, FinancialRatio, FinancialSummary
+        mock_get_fin.return_value = FinancialSummary(
+            symbol="HUBC",
+            ratios=[FinancialRatio(symbol="HUBC", period="FY 2024", eps=45.80, pe_ratio=3.20)],
+            dividends=[DividendRecord(symbol="HUBC", announcement_date="2024-08-15", dividend_amount=14.0)],
+        )
+
+        code = main(["financials", "--symbol", "HUBC"])
+        self.assertEqual(code, 0)
+        self.assertIn("Financial Ratios & Margins: HUBC", mock_stdout.getvalue())
+        self.assertIn("45.80", mock_stdout.getvalue())
+        self.assertIn("14.00", mock_stdout.getvalue())
     
 if __name__ == "__main__":
     unittest.main()
