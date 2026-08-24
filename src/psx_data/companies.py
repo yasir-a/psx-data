@@ -45,84 +45,146 @@ class _CompanyProfileParser(HTMLParser):
         self.fiscal_year_end = ""
 
         # Parser state
-        self._current_tag = ""
-        self._current_classes: list[str] = []
-        self._in_table_cell = False
-        self._last_label = ""
-        self._text_buffer = ""
+        self._in_row = False
+        self._in_cell = False
+        self._row_cells: list[str] = []
+        self._current_cell_text = ""
+
+        self._in_stats_label = False
+        self._in_stats_value = False
+        self._in_item_head = False
+        self._in_item_p = False
+
+        self._last_stats_label = ""
+        self._last_head = ""
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        self._current_tag = tag
         attr_dict = dict(attrs)
         classes = attr_dict.get("class", "").split()
-        self._current_classes = classes
-        self._text_buffer = ""
-
-        if tag in ("td", "span", "div", "h1"):
-            self._in_table_cell = True
+        classes_str = attr_dict.get("class", "").lower()
+        if tag in ("div", "h1", "span"):
+            if "quote__name" in classes or "company__name" in classes or tag == "h1":
+                self._in_item_head = True
+                self._last_head = "company_name"
+                self._current_cell_text = ""
+            elif "quote__sector" in classes or "company__sector" in classes:
+                self._in_item_head = True
+                self._last_head = "company_sector"
+                self._current_cell_text = ""
+            elif "stats_label" in classes or "label" in classes:
+                self._in_stats_label = True
+                self._current_cell_text = ""
+            elif "stats_value" in classes or "value" in classes:
+                self._in_stats_value = True
+                self._current_cell_text = ""
+            elif "item__head" in classes:
+                self._in_item_head = True
+                self._current_cell_text = ""
+        elif tag == "p":
+            self._in_item_p = True
+            self._current_cell_text = ""
+        elif tag == "tr":
+            self._in_row = True
+            self._row_cells = []
+        elif tag in ("td", "th") and self._in_row:
+            self._in_cell = True
+            self._current_cell_text = ""
+        elif tag == "a" and self._last_head == "website":
+            href = attr_dict.get("href", "")
+            if href and "http" in href:
+                self.website = href
 
     def handle_endtag(self, tag: str) -> None:
-        text = self._text_buffer.strip()
-
-        if "company__name" in self._current_classes or tag == "h1":
-            if text and not self.name:
-                self.name = text
-        elif "company__sector" in self._current_classes:
-            if text and not self.sector:
-                self.sector = text
-
-        # Handle key-value table rows
-        if self._last_label:
-            cleaned_label = self._last_label.lower().replace(":", "").strip()
-            if "chief executive" in cleaned_label or cleaned_label == "ceo":
-                self.ceo = text
-            elif "chairman" in cleaned_label or "chairperson" in cleaned_label:
-                self.chairperson = text
-            elif "auditor" in cleaned_label:
-                self.auditor = text
-            elif "website" in cleaned_label or "url" in cleaned_label:
-                self.website = text
-            elif "address" in cleaned_label:
-                self.address = text
-            elif "fiscal" in cleaned_label:
-                self.fiscal_year_end = text
-            elif "shares" in cleaned_label:
-                try:
-                    self.shares_listed = int(text.replace(",", "").replace(" ", ""))
-                except ValueError:
-                    pass
-            elif "free float" in cleaned_label:
-                try:
-                    self.free_float = int(text.replace(",", "").replace(" ", ""))
-                except ValueError:
-                    pass
-            elif "market cap" in cleaned_label:
-                try:
-                    self.market_cap = float(text.replace(",", "").replace(" ", ""))
-                except ValueError:
-                    pass
-            self._last_label = ""
-        elif text.endswith(":") or any(
-            k in text.lower()
-            for k in [
-                "chief executive",
-                "chairman",
-                "auditor",
-                "website",
-                "address",
-                "fiscal",
-                "shares",
-                "free float",
-                "market cap",
-            ]
-        ):
-            self._last_label = text
-
-        self._in_table_cell = False
+        text = self._current_cell_text.strip()
+        if tag in ("div", "h1", "span"):
+            if self._in_stats_label:
+                self._in_stats_label = False
+                self._last_stats_label = text.lower()
+            elif self._in_stats_value:
+                self._in_stats_value = False
+                self._process_stats_value(text)
+            elif self._in_item_head:
+                self._in_item_head = False
+                if self._last_head == "company_name" and text:
+                    if not self.name:
+                        self.name = text
+                    self._last_head = ""
+                elif self._last_head == "company_sector" and text:
+                    if not self.sector:
+                        self.sector = text
+                    self._last_head = ""
+                else:
+                    self._last_head = text.lower()
+        elif tag == "p" and self._in_item_p:
+            self._in_item_p = False
+            self._process_item_p(text)
+        elif tag in ("td", "th") and self._in_cell:
+            self._in_cell = False
+            self._row_cells.append(text)
+        elif tag == "tr" and self._in_row:
+            self._in_row = False
+            self._process_table_row()
 
     def handle_data(self, data: str) -> None:
-        if self._in_table_cell:
-            self._text_buffer += data
+        if self._in_cell or self._in_stats_label or self._in_stats_value or self._in_item_head or self._in_item_p:
+            self._current_cell_text += data
+
+    def _process_stats_value(self, text: str) -> None:
+        label = self._last_stats_label
+        clean_num = text.replace(",", "").replace("Rs.", "").replace("PKR", "").strip()
+
+        if "market cap" in label and not self.market_cap:
+            try:
+                self.market_cap = float(clean_num)
+            except ValueError:
+                pass
+        elif "shares" in label and not self.shares_listed:
+            try:
+                self.shares_listed = int(float(clean_num))
+            except ValueError:
+                pass
+        elif "free float" in label and not self.free_float and "%" not in text:
+            try:
+                self.free_float = int(float(clean_num))
+            except ValueError:
+                pass
+
+    def _process_item_p(self, text: str) -> None:
+        head = self._last_head
+        if "auditor" in head and not self.auditor:
+            self.auditor = text
+        elif "address" in head and not self.address:
+            self.address = text
+        elif "website" in head and not self.website:
+            self.website = text
+        elif "fiscal" in head and not self.fiscal_year_end:
+            self.fiscal_year_end = text
+
+    def _process_table_row(self) -> None:
+        cells = self._row_cells
+        if len(cells) >= 2:
+            # Table format: Name in cells[0], Title/Role in cells[1]
+            # or Label in cells[0], Value in cells[1]
+            first = cells[0].strip()
+            second = cells[1].strip()
+
+            second_lower = second.lower()
+            if second_lower == "ceo" or "chief executive" in second_lower:
+                self.ceo = first
+            elif "chair" in second_lower or "chairman" in second_lower:
+                self.chairperson = first
+
+            first_lower = first.lower()
+            if "chief executive" in first_lower or first_lower == "ceo":
+                self.ceo = second
+            elif "chair" in first_lower or "chairman" in first_lower:
+                self.chairperson = second
+            elif "auditor" in first_lower and not self.auditor:
+                self.auditor = second
+            elif "website" in first_lower and not self.website:
+                self.website = second
+            elif "address" in first_lower and not self.address:
+                self.address = second
 
     def to_profile(self) -> CompanyProfile:
         return CompanyProfile(
@@ -139,7 +201,6 @@ class _CompanyProfileParser(HTMLParser):
             address=self.address,
             fiscal_year_end=self.fiscal_year_end,
         )
-
 
 def parse_company_profile(symbol: str, html_str: str) -> CompanyProfile:
     """Parse HTML string of PSX company page into a CompanyProfile dataclass."""
