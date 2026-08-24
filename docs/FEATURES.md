@@ -525,6 +525,6 @@ psx-data announcements --symbol HUBC --count 5
 
 ## 13. Test Suite & Quality Assurance
 
-* **77 unit tests** using standard library `unittest`.
+* **78 unit tests** using standard library `unittest`.
 * Tested against offline PSX HTML and JSON fixtures as well as mock network layers.
 * Automated CI pipeline on GitHub Actions.

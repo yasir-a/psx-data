@@ -314,6 +314,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Save financials into local SQLite database",
     )
 
+    # Subcommand: serve
+    serve_parser = subparsers.add_parser(
+        "serve",
+        help="Start local REST API HTTP server for frontend UI",
+    )
+    serve_parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Host interface to bind to (default: 127.0.0.1)",
+    )
+    serve_parser.add_argument(
+        "--port",
+        "-p",
+        type=int,
+        default=8000,
+        help="Port number to listen on (default: 8000)",
+    )
+
     return parser
 
 
@@ -684,6 +703,15 @@ def handle_financials(args: argparse.Namespace) -> int:
 
     return 0
 
+def handle_serve(args: argparse.Namespace) -> int:
+    try:
+        run_server(host=args.host, port=args.port)
+        return 0
+    except Exception as exc:
+        print(f"Error running API server: {exc}", file=sys.stderr)
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -706,6 +734,8 @@ def main(argv: list[str] | None = None) -> int:
         return handle_company(args)
     elif args.command == "financials":
         return handle_financials(args)
+    elif args.command == "serve":
+        return handle_serve(args)
 
     return 0
 

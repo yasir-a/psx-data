@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "psx-data"
-version = "0.1.0"
-description = "Open-source toolkit for collecting and working with Pakistan Stock Exchange (PSX) data"
+version = "0.2.0"
+description = "A zero-dependency Python library for collecting, parsing, and working with data from the Pakistan Stock Exchange."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }

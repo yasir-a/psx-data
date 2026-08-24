@@ -271,6 +271,13 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Financial Ratios & Margins: HUBC", mock_stdout.getvalue())
         self.assertIn("45.80", mock_stdout.getvalue())
         self.assertIn("14.00", mock_stdout.getvalue())
-    
+
+    @patch("psx_data.cli.run_server")
+    def test_cli_serve(self, mock_run_server):
+        code = main(["serve", "--host", "127.0.0.1", "--port", "8000"])
+        self.assertEqual(code, 0)
+        mock_run_server.assert_called_once_with(host="127.0.0.1", port=8000)
+
+
 if __name__ == "__main__":
     unittest.main()

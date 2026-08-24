@@ -248,7 +248,7 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
   .\.venv\Scripts\python.exe -m unittest tests/test_db.py -v
   ```
 * **Windows SQLite note**: All `sqlite3` connections opened in tests must call `.close()` explicitly (not just rely on context manager) before `tearDown`'s `tempfile.TemporaryDirectory.cleanup()` runs, to avoid `PermissionError: [WinError 32]` file-lock errors.
-* **Verification rule**: The entire test suite (**currently 77 tests**) must pass with `OK` before opening any PR or concluding a task.
+* **Verification rule**: The entire test suite (**currently 78 tests**) must pass with `OK` before opening any PR or concluding a task.
 
 ---
 
@@ -267,11 +267,11 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 * ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, `company`, `financials`, `db`, and `serve`.
 * ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
 * ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
+* ✅ **Release `v0.2.0`**: Version bump in `pyproject.toml`, changelog updated in `CHANGELOG.md`, all 78 unit tests passing.
 
-### Pending Roadmap Items
-* ⏳ **Financial Statements / Ratio Analysis (`src/psx_data/financials.py`)**: Balance sheets, income statements, and dividend histories.
-* ⏳ **Release `v0.2.0` Prep**: Updating `CHANGELOG.md`, `pyproject.toml`, and creating git release tags.
-
+### Future Roadmap Items
+* ⏳ **Real-Time WebSocket Price Streaming**: Live bid/ask and tick streaming integration.
+* ⏳ **Sector-wise Aggregated Fundamentals**: Aggregated sector P/E, market capitalization, and dividend yield rankings.
 
 ---
 
