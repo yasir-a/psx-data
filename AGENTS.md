@@ -254,25 +254,11 @@ Every feature, fix, or refactor must follow the 22-step workflow established in 
 * ✅ **Company Fundamentals & Profiles** ([`src/psx_data/companies.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/companies.py)): Listed shares, market cap, executive leadership (CEO, Chairman, Auditor), and corporate profile metadata (`get_company_profile`).
 * ✅ **Local SQLite Storage Layer** ([`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py)): Relational caching via `sqlite3` (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`, `save_company_profile`, `query_company_profile`, `get_db_stats`).
 * ✅ **Storage & Export Utilities** ([`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py)): Binary notice downloader (`download_attachment`), CSV exporter (`export_to_csv`), and JSON exporter (`export_to_json`).
-* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, `company`, and `db` (`init`, `status`, `sync-symbols`, `sync-eod`).
-* ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
+* ✅ **Local REST API Server** ([`src/psx_data/server.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/server.py)): Stdlib HTTP server serving JSON endpoints to the UI dashboard.
 * ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
 
 ### Pending Roadmap Items
 * ⏳ **Financial Statements / Ratio Analysis (`src/psx_data/financials.py`)**: Balance sheets, income statements, and dividend histories.
-* ⏳ **Frontend Web UI**: React + Vite application for real-time visualization and browsing.
-* ⏳ **Release `v0.2.0` Prep**: Updating `CHANGELOG.md`, `pyproject.toml`, and creating git release tags.market.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/market.py)): Historical EOD OHLCV daily bars (`get_eod`) and real-time Intraday ticks (`get_intraday`). Resilient `parse_eod` handles float volumes and variable-length timeseries arrays.
-* ✅ **Major Market Indices Dashboard** ([`src/psx_data/indices.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/indices.py)): Real-time tracking of benchmark indices (`KSE100`, `KSE30`, `KMI30`, `ALLSHR`) via `/timeseries/int/{INDEX}` endpoint; computes open/high/low/close/volume from intraday ticks.
-* ✅ **Local SQLite Storage Layer** ([`src/psx_data/db.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/db.py)): Relational caching via `sqlite3` (`init_db`, `save_symbols`, `query_symbols`, `save_announcements`, `query_announcements`, `save_eod`, `query_eod`, `get_db_stats`).
-* ✅ **Storage & Export Utilities** ([`src/psx_data/storage.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/storage.py)): Binary notice downloader (`download_attachment`), CSV exporter (`export_to_csv`), and JSON exporter (`export_to_json`).
-* ✅ **CLI Interface** ([`src/psx_data/cli.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/cli.py)): Subcommands `announcements`, `symbols`, `sectors`, `indices`, `eod`, `intraday`, and `db` (`init`, `status`, `sync-symbols`, `sync-eod`).
-* ✅ **Error Handling** ([`src/psx_data/exceptions.py`](file:///c:/Users/yasir/projects/psx-data/src/psx_data/exceptions.py)): Custom exceptions with network timeout wrappers.
-* ✅ **Feature Documentation** ([`docs/FEATURES.md`](file:///c:/Users/yasir/projects/psx-data/docs/FEATURES.md)): Comprehensive guide with tested live CLI examples.
-
-### Pending Roadmap Items
-* ⏳ **Company Fundamentals & Profiles (`src/psx_data/companies.py`)**: Listed shares, market cap, executive info, and profile summaries from `dps.psx.com.pk/company/{SYMBOL}`.
-* ⏳ **Financial Statements / Ratio Analysis (`src/psx_data/financials.py`)**: Balance sheets, income statements, and dividend histories.
-* ⏳ **Frontend Web UI**: React + Vite application for real-time visualization and browsing.
 * ⏳ **Release `v0.2.0` Prep**: Updating `CHANGELOG.md`, `pyproject.toml`, and creating git release tags.
 
 
